@@ -153,7 +153,9 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("utils.authentication.RedisJWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "app.utils.authentication.RedisJWTAuthentication",
+    ),
 }
 
 SIMPLE_JWT = {
