@@ -81,7 +81,8 @@ jobs:
           until pg_isready -h localhost -p ${{ secrets.DB_PORT }} -U ${{ secrets.DB_USER }}; do
             sleep 3
           done
-
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV  # ✅ PYTHONPATH 설정
       # 정상적인 DB 연결을 확인했으니 마이그레이션 수행
       - name: Run Django Migration
         working-directory: app  # ✅ working-directory 추가
