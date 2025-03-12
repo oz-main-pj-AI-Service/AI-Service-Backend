@@ -1,6 +1,8 @@
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 from .jwt_cache import get_cached_jwt
+
 
 class RedisJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
