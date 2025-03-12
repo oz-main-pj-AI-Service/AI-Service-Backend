@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+from datetime import timedelta
+
 pass
 import os
 from pathlib import Path
@@ -136,3 +138,30 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # Redis 서버 주소
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("utils.authentication.RedisJWTAuthentication",),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # 액세스 토큰 유효 시간
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # 리프레시 토큰 유효 시간
+    "ROTATE_REFRESH_TOKENS": True,  # 리프레시 토큰이 사용될 때마다 새로운 토큰 발급
+    "BLACKLIST_AFTER_ROTATION": True,  # 이전 리프레시 토큰을 블랙리스트 처리
+    "ALGORITHM": "HS256",  # 기본 알고리즘 (HMAC SHA256)
+    "SIGNING_KEY": "your-secret-key",  # JWT 서명에 사용할 키 (환경 변수로 설정 권장)
+    "AUTH_HEADER_TYPES": ("Bearer",),  # Authorization 헤더 형식
+}
