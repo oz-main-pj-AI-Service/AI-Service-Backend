@@ -21,6 +21,7 @@ def get_cached_jwt(user_id):
     """
     return redis_client.get(f"jwt:{user_id}")
 
+
 def remove_cached_jwt(user_id):
     """
     Redis에서 JWT 삭제 (로그아웃 시)
