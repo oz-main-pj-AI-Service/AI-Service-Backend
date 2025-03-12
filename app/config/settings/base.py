@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # OWN APP
     # THIRD PARTY
-    "drf_yasg",
+    # "drf_yasg",
     "rest_framework",
 ]
 
