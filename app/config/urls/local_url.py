@@ -4,6 +4,7 @@ from rest_framework import permissions
 
 from .base_url import *
 
+pass
 schema_view = get_schema_view(
     openapi.Info(
         title="API Documentation",
