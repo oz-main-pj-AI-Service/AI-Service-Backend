@@ -1,7 +1,7 @@
 import redis
 from django.conf import settings
 
-from app.utils.jwt_blacklist import redis_client
+from .jwt_blacklist import redis_client
 
 redis_client = redis.StrictRedis(
     host="127.0.0.1", port=6379, db=1, decode_responses=True

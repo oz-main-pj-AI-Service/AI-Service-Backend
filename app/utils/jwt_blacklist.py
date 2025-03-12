@@ -1,5 +1,4 @@
 import redis
-from django.conf import settings
 
 redis_client = redis.StrictRedis(
     host="127.0.0.1", port=6379, db=2, decode_responses=True
