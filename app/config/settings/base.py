@@ -154,7 +154,7 @@ SESSION_CACHE_ALIAS = "default"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "app.utils.authentication.RedisJWTAuthentication",
+        "utils.authentication.RedisJWTAuthentication",
     ),
 }
 
