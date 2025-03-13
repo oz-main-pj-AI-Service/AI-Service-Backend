@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+
 # 수정 완료
 class AiRequest(models.Model):
     """AI 요청 정보를 관리하는 모델"""
