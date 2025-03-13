@@ -31,7 +31,9 @@ load_dotenv(BASE_DIR / "../.env")
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+
+
+DEBUG = os.getenv("DEBUG")
 
 ALLOWED_HOSTS = []
 
@@ -39,17 +41,23 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # OWN APP
+    "apps.ai",
+    "apps.food",
+    "apps.log",
+    "apps.report",
+    "apps.user",
+    # THIRD PARTY
+    "drf_yasg",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    # Django_APP
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    # OWN APP
-    # THIRD PARTY
-    "drf_yasg",
-    "rest_framework",
-    "rest_framework_simplejwt",
 ]
 
 MIDDLEWARE = [
@@ -62,7 +70,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls.local_url"
+ROOT_URLCONF = "config.urls.urls"
 
 TEMPLATES = [
     {
@@ -134,6 +142,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -166,3 +176,5 @@ SIMPLE_JWT = {
     "SIGNING_KEY": "your-secret-key",  # JWT 서명에 사용할 키 (환경 변수로 설정 권장)
     "AUTH_HEADER_TYPES": ("Bearer",),  # Authorization 헤더 형식
 }
+
+AUTH_USER_MODEL = "user.User"
