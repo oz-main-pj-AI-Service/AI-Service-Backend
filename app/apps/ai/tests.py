@@ -1,234 +1,160 @@
 import json
-from datetime import date, datetime, timedelta
+import uuid
+from datetime import date, timedelta
 from decimal import Decimal
 
-from apps.ai.models import AiRequest, FoodResult, UserHealthProfile
+from apps.ai.models import (
+    AIFoodRequest,
+    AIFoodResult,
+    AIRecipeRequest,
+    AIUserHealthRequest,
+)
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.utils import timezone
 
 User = get_user_model()
 
 
-class AiRequestModelTest(TestCase):
-    """AiRequest 모델 테스트"""
-
+class AIModelsTestCase(TestCase):
     def setUp(self):
-        # 테스트용 사용자 생성
+        # 테스트용 사용자 생성 (이메일 기반)
         self.user = User.objects.create_user(
-            email="test@example.com", password="testpassword"
+            email="test@example.com", password="testpassword123"
         )
 
-        # 테스트용 AI 요청 데이터
-        self.request_data = {
-            "ingredients": ["계란", "당근", "양파"],
-            "meal_type": "점심",
-            "cooking_time": 30,
-        }
-
-        # 테스트용 응답 데이터
-        self.response_data = {
-            "recipe_name": "계란 볶음밥",
-            "instructions": "1. 계란을 풀어서 준비합니다...",
-            "cooking_time": 25,
-            "difficulty": "쉬움",
-        }
-
-    def test_create_ai_request(self):
-        """AiRequest 객체 생성 테스트"""
-        ai_request = AiRequest.objects.create(
+        # AIFoodRequest 테스트 데이터
+        self.food_request = AIFoodRequest.objects.create(
             user=self.user,
-            request_type=AiRequest.RequestType.RECIPE,
-            request_data=self.request_data,
-            response_data=self.response_data,
+            request_type="food",
+            request_data={
+                "cuisine_type": "한식",
+                "food_type": "밥",
+                "taste": "매운맛",
+                "dietary_type": "건강한 맛",
+                "last_meal": "햄버거",
+            },
         )
 
-        self.assertEqual(ai_request.user, self.user)
-        self.assertEqual(ai_request.request_type, AiRequest.RequestType.RECIPE)
-        self.assertEqual(ai_request.request_data, self.request_data)
-        self.assertEqual(ai_request.response_data, self.response_data)
-        self.assertTrue(isinstance(ai_request.created_at, datetime))
-
-    def test_ai_request_str_method(self):
-        """AiRequest __str__ 메서드 테스트"""
-        ai_request = AiRequest.objects.create(
+        # AIFoodResult 테스트 데이터
+        self.food_result = AIFoodResult.objects.create(
             user=self.user,
-            request_type=AiRequest.RequestType.RECIPE,
-            request_data=self.request_data,
-        )
-
-        expected_str = f"레시피 추천 - {self.user.email} - {ai_request.created_at.strftime('%Y-%m-%d %H:%M')}"
-        self.assertEqual(str(ai_request), expected_str)
-
-    def test_ai_request_ordering(self):
-        """AiRequest 객체 정렬 순서 테스트 (최신순)"""
-        # 첫 번째 요청 생성
-        first_request = AiRequest.objects.create(
-            user=self.user,
-            request_type=AiRequest.RequestType.RECIPE,
-            request_data=self.request_data,
-        )
-
-        # 약간의 시간 간격을 두고 두 번째 요청 생성
-        second_request = AiRequest.objects.create(
-            user=self.user,
-            request_type=AiRequest.RequestType.MEAL_PLAN,
-            request_data={"days": 7, "goal": "diet"},
-        )
-
-        # 정렬 순서 확인 (최신순)
-        ai_requests = AiRequest.objects.all()
-        self.assertEqual(ai_requests[0], second_request)
-        self.assertEqual(ai_requests[1], first_request)
-
-
-class UserHealthProfileModelTest(TestCase):
-    """UserHealthProfile 모델 테스트"""
-
-    def setUp(self):
-        # 테스트용 사용자 생성 - username 제거
-        self.user = User.objects.create_user(
-            email="health@example.com", password="healthpassword"
-        )
-
-        # 알레르기 및 비선호 음식 데이터
-        self.allergies = ["땅콩", "새우", "밀가루"]
-        self.disliked_foods = ["브로콜리", "가지"]
-
-        # 목표 시작일 및 종료일
-        self.start_date = date.today()
-        self.end_date = self.start_date + timedelta(days=30)
-
-    def test_create_health_profile(self):
-        """UserHealthProfile 객체 생성 테스트"""
-        profile = UserHealthProfile.objects.create(
-            user=self.user,
-            weight=Decimal("68.5"),
-            goal=UserHealthProfile.Goal.DIET,
-            exercise_frequency=UserHealthProfile.ExerciseFrequency.MODERATE,
-            allergies=self.allergies,
-            disliked_foods=self.disliked_foods,
-            goal_start_date=self.start_date,
-            goal_end_date=self.end_date,
-        )
-
-        self.assertEqual(profile.user, self.user)
-        self.assertEqual(profile.weight, Decimal("68.5"))
-        self.assertEqual(profile.goal, UserHealthProfile.Goal.DIET)
-        self.assertEqual(
-            profile.exercise_frequency, UserHealthProfile.ExerciseFrequency.MODERATE
-        )
-        self.assertEqual(profile.allergies, self.allergies)
-        self.assertEqual(profile.disliked_foods, self.disliked_foods)
-        self.assertEqual(profile.goal_start_date, self.start_date)
-        self.assertEqual(profile.goal_end_date, self.end_date)
-
-    def test_health_profile_defaults(self):
-        """UserHealthProfile 기본값 테스트"""
-        profile = UserHealthProfile.objects.create(user=self.user)
-
-        self.assertEqual(profile.goal, UserHealthProfile.Goal.MAINTENANCE)
-        self.assertEqual(
-            profile.exercise_frequency, UserHealthProfile.ExerciseFrequency.NONE
-        )
-        self.assertEqual(profile.allergies, [])
-        self.assertEqual(profile.disliked_foods, [])
-        self.assertIsNone(profile.weight)
-        self.assertIsNone(profile.goal_start_date)
-        self.assertIsNone(profile.goal_end_date)
-
-    def test_health_profile_str_method(self):
-        """UserHealthProfile __str__ 메서드 테스트"""
-        profile = UserHealthProfile.objects.create(user=self.user)
-
-        expected_str = f"{self.user.email}의 건강 프로필"
-        self.assertEqual(str(profile), expected_str)
-
-    def test_user_health_profile_one_to_one(self):
-        """UserHealthProfile과 User의 1:1 관계 테스트"""
-        # 첫 번째 프로필 생성
-        profile1 = UserHealthProfile.objects.create(
-            user=self.user, weight=Decimal("70.0")
-        )
-
-        # 같은 사용자로 두 번째 프로필 생성 시도 시 예외 발생해야 함
-        with self.assertRaises(Exception):  # 일반적으로 IntegrityError가 발생함
-            profile2 = UserHealthProfile.objects.create(
-                user=self.user, weight=Decimal("71.0")
-            )
-
-
-class FoodResultModelTest(TestCase):
-    """FoodResult 모델 테스트"""
-
-    def setUp(self):
-        # 테스트용 사용자 생성 - username 제거
-        self.user = User.objects.create_user(
-            email="food@example.com", password="foodpassword"
-        )
-
-        # 테스트용 AI 요청 생성
-        self.ai_request = AiRequest.objects.create(
-            user=self.user,
-            request_type=AiRequest.RequestType.FOOD_RECOMMENDATION,
-            request_data={"meal_type": "점심", "preference": "한식"},
-        )
-
-        # 영양 정보 데이터
-        self.nutritional_info = {"calories": 350, "protein": 15, "carbs": 45, "fat": 10}
-
-    def test_create_food_result(self):
-        """FoodResult 객체 생성 테스트"""
-        food_result = FoodResult.objects.create(
-            user=self.user,
-            ai_request=self.ai_request,
+            request_type="food",
             food_name="비빔밥",
             food_type="한식",
-            description="신선한 채소와 고기를 곁들인 건강한 한 그릇 식사",
-            nutritional_info=self.nutritional_info,
-            recommendation_reason="사용자의 다이어트 목표와 한식 선호도에 맞춘 추천",
+            description="신선한 야채와 고추장이 들어간 건강한 한식",
+            nutritional_info={"calories": 500, "protein": 15, "carbs": 80, "fat": 10},
+            recommendation_reason="매운맛을 선호하며 건강한 한식을 원하셨기 때문에 비빔밥을 추천합니다.",
         )
 
-        self.assertEqual(food_result.user, self.user)
-        self.assertEqual(food_result.ai_request, self.ai_request)
-        self.assertEqual(food_result.food_name, "비빔밥")
-        self.assertEqual(food_result.food_type, "한식")
-        self.assertEqual(food_result.nutritional_info, self.nutritional_info)
-        self.assertTrue(isinstance(food_result.created_at, datetime))
+        # AIRecipeRequest 테스트 데이터
+        self.recipe_request = AIRecipeRequest.objects.create(
+            name="김치찌개",
+            request_type="recipe",
+            description="맛있는 김치찌개 레시피",
+            preparation_time=15,
+            cooking_time=30,
+            serving_size=4,
+            difficulty="중간",
+            cuisine_type="한식",
+            meal_type="저녁",
+            ingredients=[
+                {"name": "김치", "amount": "300g"},
+                {"name": "돼지고기", "amount": "200g"},
+                {"name": "두부", "amount": "1모"},
+                {"name": "파", "amount": "2뿌리"},
+            ],
+            instructions=[
+                {"step": 1, "description": "김치를 적당한 크기로 자른다."},
+                {"step": 2, "description": "돼지고기를 썰어 준비한다."},
+                {
+                    "step": 3,
+                    "description": "냄비에 물을 붓고 김치와 돼지고기를 넣고 끓인다.",
+                },
+                {"step": 4, "description": "두부를 넣고 5분간 더 끓인다."},
+            ],
+            nutrition_info={"calories": 450, "protein": 25, "carbs": 30, "fat": 20},
+            is_ai_generated=True,
+            ai_request=self.food_request,
+        )
 
-    def test_food_result_without_ai_request(self):
-        """AI 요청 없이 FoodResult 객체 생성 테스트"""
-        food_result = FoodResult.objects.create(
+        # AIUserHealthRequest 테스트 데이터
+        self.health_request = AIUserHealthRequest.objects.create(
             user=self.user,
-            food_name="샐러드",
-            food_type="양식",
-            nutritional_info={"calories": 180, "protein": 5, "carbs": 20, "fat": 8},
+            request_type="health",
+            weight=Decimal("70.50"),
+            goal=AIUserHealthRequest.Goal.DIET,
+            exercise_frequency=AIUserHealthRequest.ExerciseFrequency.TWO_TO_THREE,
+            allergies=["땅콩", "새우"],
+            disliked_foods=["셀러리", "양파"],
+            goal_start_date=date.today(),
+            goal_end_date=date.today() + timedelta(days=90),
         )
 
-        self.assertEqual(food_result.user, self.user)
-        self.assertIsNone(food_result.ai_request)
-        self.assertEqual(food_result.food_name, "샐러드")
+    def test_ai_food_request_creation(self):
+        """AIFoodRequest 생성 테스트"""
+        self.assertEqual(self.food_request.user, self.user)
+        self.assertEqual(self.food_request.request_type, "food")
+        self.assertEqual(self.food_request.request_data["cuisine_type"], "한식")
+        self.assertIsNone(self.food_request.response_data)
 
-    def test_food_result_str_method(self):
-        """FoodResult __str__ 메서드 테스트"""
-        food_result = FoodResult.objects.create(user=self.user, food_name="된장찌개")
+        # response_data 업데이트 테스트
+        self.food_request.response_data = {"recommendation": "비빔밥"}
+        self.food_request.save()
+        self.assertEqual(self.food_request.response_data["recommendation"], "비빔밥")
 
-        expected_str = f"{self.user.email} - 된장찌개 - {food_result.created_at.strftime('%Y-%m-%d')}"
-        self.assertEqual(str(food_result), expected_str)
+    def test_ai_food_result_creation(self):
+        """AIFoodResult 생성 테스트"""
+        self.assertEqual(self.food_result.user, self.user)
+        self.assertEqual(self.food_result.food_name, "비빔밥")
+        self.assertEqual(self.food_result.nutritional_info["calories"], 500)
 
-    def test_food_result_ordering(self):
-        """FoodResult 객체 정렬 순서 테스트 (최신순)"""
-        # 첫 번째 결과 생성
-        first_result = FoodResult.objects.create(user=self.user, food_name="김치찌개")
+        # 영양 정보 업데이트 테스트
+        updated_nutrition = self.food_result.nutritional_info
+        updated_nutrition["sodium"] = 800
+        self.food_result.nutritional_info = updated_nutrition
+        self.food_result.save()
 
-        import time
+        refreshed_result = AIFoodResult.objects.get(id=self.food_result.id)
+        self.assertEqual(refreshed_result.nutritional_info["sodium"], 800)
 
-        time.sleep(1)
+    def test_ai_recipe_request_creation(self):
+        """AIRecipeRequest 생성 테스트"""
+        self.assertEqual(self.recipe_request.name, "김치찌개")
+        self.assertEqual(self.recipe_request.serving_size, 4)
+        self.assertEqual(len(self.recipe_request.ingredients), 4)
+        self.assertEqual(len(self.recipe_request.instructions), 4)
+        self.assertTrue(isinstance(self.recipe_request.id, uuid.UUID))
+        self.assertTrue(self.recipe_request.is_ai_generated)
 
-        # 약간의 시간 간격을 두고 두 번째 결과 생성
-        second_result = FoodResult.objects.create(user=self.user, food_name="된장찌개")
+        # 레시피 수정 테스트
+        self.recipe_request.difficulty = "쉬움"
+        self.recipe_request.save()
 
-        # 정렬 순서 확인 (최신순)
-        food_results = FoodResult.objects.all()
-        self.assertEqual(food_results[0], second_result)
-        self.assertEqual(food_results[1], first_result)
+        refreshed_recipe = AIRecipeRequest.objects.get(id=self.recipe_request.id)
+        self.assertEqual(refreshed_recipe.difficulty, "쉬움")
+
+    def test_ai_user_health_request_creation(self):
+        """AIUserHealthRequest 생성 테스트"""
+        self.assertEqual(self.health_request.user, self.user)
+        self.assertEqual(self.health_request.weight, Decimal("70.50"))
+        self.assertEqual(self.health_request.goal, AIUserHealthRequest.Goal.DIET)
+        self.assertEqual(len(self.health_request.allergies), 2)
+        self.assertEqual(self.health_request.allergies[0], "땅콩")
+
+        # 사용자 목표 업데이트 테스트
+        self.health_request.goal = AIUserHealthRequest.Goal.BULK_UP
+        self.health_request.save()
+
+        refreshed_health = AIUserHealthRequest.objects.get(id=self.health_request.id)
+        self.assertEqual(refreshed_health.goal, AIUserHealthRequest.Goal.BULK_UP)
+
+    def test_string_representation(self):
+        """각 모델의 문자열 표현 테스트"""
+        self.assertIn(self.user.email, str(self.food_request))
+        self.assertIn(self.food_result.food_name, str(self.food_result))
+        self.assertEqual(str(self.recipe_request), "김치찌개")
+        self.assertIn(self.user.email, str(self.health_request))
+
+    def test_related_models(self):
+        """모델 간 관계 테스트"""
+        self.assertEqual(self.recipe_request.ai_request, self.food_request)
