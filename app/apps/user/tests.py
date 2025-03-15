@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
@@ -32,6 +34,7 @@ from django.test import Client, TestCase
 User = get_user_model()
 
 
+@mock.patch("redis.Redis")
 class SocialLoginTest(TestCase):
     def setUp(self):
         self.client = Client()
@@ -85,6 +88,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 
+@mock.patch("redis.Redis")
 class TestUserViews(APITestCase):
     def setUp(self):
         self.register_url = reverse("user:register")
@@ -150,6 +154,7 @@ class TestUserViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
+@mock.patch("redis.Redis")
 class TestFindEmailView(APITestCase):
     def setUp(self):
         self.find_email_url = reverse("user:find-email")
