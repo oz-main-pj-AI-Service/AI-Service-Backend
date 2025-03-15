@@ -1,20 +1,20 @@
+from apps.utils.jwt_blacklist import is_blacklisted
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .jwt_cache import get_cached_jwt
-
 
 class RedisJWTAuthentication(JWTAuthentication):
+    """JWT를 Redis 기반으로 블랙리스트 검증하는 커스텀 인증 클래스"""
+
     def authenticate(self, request):
         auth_result = super().authenticate(request)
-        if auth_result is None:
+        if not auth_result:
             return None
 
         user, token = auth_result
 
-        # Redis에서 JWT 가져오기
-        cached_token = get_cached_jwt(user.id)
-        if cached_token != str(token):
-            raise AuthenticationFailed("Invalid or expired token.")
+        # ✅ 블랙리스트 검증
+        if is_blacklisted(str(token)):
+            raise AuthenticationFailed("로그아웃된 토큰입니다.")
 
         return user, token

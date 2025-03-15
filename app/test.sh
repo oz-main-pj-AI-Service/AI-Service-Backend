@@ -15,8 +15,9 @@ echo "OK"
 #poetry run mypy .
 #echo "OK"
 
-#echo "Starting test with coverage"
-##poetry run coverage run manage.py test
-#                              ##poetry run coverage report -m
-#
-#echo "${COLOR_GREEN}All tests passed successfully!${COLOR_NC}"
+echo "Starting test"
+poetry run coverage run manage.py test
+
+#poetry run coverage report -m
+
+echo "${COLOR_GREEN}All tests passed successfully!${COLOR_NC}"
