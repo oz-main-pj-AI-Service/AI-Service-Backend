@@ -16,7 +16,7 @@ echo "OK"
 #echo "OK"
 
 echo "Starting test"
-poetry run coverage run manage.py test
+poetry run python manage.py test
 
 #poetry run coverage report -m
 
