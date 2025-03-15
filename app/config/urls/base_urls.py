@@ -1,3 +1,5 @@
-from django.urls.conf import path
+from django.urls.conf import include, path
 
-urlpatterns = []
+urlpatterns = [
+    path("", include("apps.report.urls")),
+]
