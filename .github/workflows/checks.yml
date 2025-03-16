@@ -44,12 +44,6 @@ jobs:
       - name: Check running containers
         run: docker ps -a
 
-      - name: Wait for PostgreSQL
-        run: |
-          until docker exec postgres_db pg_isready -h db -p 5432 -U ${{ secrets.DB_USER }}; do
-            sleep 3
-          done
-
       - name: Run isort (Import sorting)
         run: |
           docker exec django poetry run isort . --check --diff
