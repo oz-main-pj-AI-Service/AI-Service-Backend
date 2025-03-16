@@ -164,17 +164,14 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
+REDIS_HOST = os.getenv("REDIS_HOST", "127.0.0.1")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
-REDIS_HOST = (
-    "redis_service"
-    if os.getenv("DOCKER_ENV", "false").lower() == "true"
-    else "127.0.0.1"
-)
+
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{REDIS_HOST}:6379/1",  # Redis 서버 주소
+        "LOCATION": "redis://127.0.0.1:6379/1",  # Redis 서버 주소
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
