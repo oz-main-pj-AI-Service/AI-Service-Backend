@@ -78,13 +78,33 @@ class SocialLoginTest(TestCase):
         self.assertIsNone(new_user)  # 테스트에서는 새로운 사용자가 생성되지 않습니다.
 
 
+import os
+
 from apps.user.models import User
 from apps.user.serializers import UserRegisterSerializer
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+# 테스트에서 Redis 설정 오버라이드
+if os.getenv("DOCKER_ENV", "false").lower() == "true":
+    redis_host = os.getenv("REDIS_HOST", "redis")
+else:
+    redis_host = "127.0.0.1"
 
+redis_settings = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": f"redis://{redis_host}:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
+
+
+@override_settings(CACHES=redis_settings)
 class TestUserViews(APITestCase):
     def setUp(self):
         self.register_url = reverse("user:register")
