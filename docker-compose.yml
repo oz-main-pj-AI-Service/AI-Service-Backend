@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  django:
+    build: .
+    container_name: django
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DOCKER_ENV=true
+    depends_on:
+      - redis
+      - db  # PostgreSQL이 실행된 후 Django가 실행되도록 설정
+    volumes:
+      - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
+    working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
+    command: python manage.py runserver 0.0.0.0:8000
+    networks:
+      - backend
+
+  redis:
+    image: redis:latest
+    container_name: redis_service
+    ports:
+      - "6379:6379"
+    networks:
+      - backend
+
+  db:  # PostgreSQL 추가
+    image: postgres:13
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge

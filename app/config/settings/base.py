@@ -28,7 +28,7 @@ load_dotenv(BASE_DIR / "../.env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -102,10 +102,35 @@ DATABASES = {
         "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": "localhost",
+        "HOST": "db",
         "PORT": 5432,
     }
 }
+import os
+
+# 실행 환경에 따라 DB 설정을 다르게 적용
+if os.getenv("DOCKER_ENV") == "true":  # Docker 컨테이너에서 실행될 때
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": "db",
+            "PORT": 5432,
+        }
+    }
+else:  # 로컬 환경에서 실행될 때
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
+            "USER": os.getenv("DB_USER"),
+            "PASSWORD": os.getenv("DB_PASSWORD"),
+            "HOST": "localhost",
+            "PORT": 5432,
+        }
+    }
 
 
 # Password validation
@@ -152,6 +177,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
