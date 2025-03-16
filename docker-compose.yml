@@ -11,12 +11,17 @@ services:
     environment:
       - DOCKER_ENV=true
     depends_on:
-      - redis
-      - db  # PostgreSQL이 실행된 후 Django가 실행되도록 설정
+      redis:
+        condition: service_healthy  # Redis가 실행될 때까지 대기
+      db:
+        condition: service_healthy  # DB도 실행될 때까지 대기
     volumes:
       - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
     networks:
       - backend
 
@@ -27,6 +32,12 @@ services:
       - "6379:6379"
     networks:
       - backend
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   db:  # PostgreSQL 추가
     image: postgres:13
@@ -38,12 +49,18 @@ services:
       - .env
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234  # ✅ 비밀번호 설정
-      POSTGRES_DB: aiservice  # ✅ DB 자동 생성
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: aiservice
     volumes:
-      - ./init-scripts:/docker-entrypoint-initdb.d  # ✅ 초기 SQL 실행 폴더 마운트
+      - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d aiservice" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   backend:

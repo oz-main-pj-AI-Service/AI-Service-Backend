@@ -18,6 +18,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
+
       - name: Remove docker-compose.override.yml (if exists)
         run: |
           rm -f docker-compose.override.yml
@@ -48,12 +49,6 @@ jobs:
           until docker exec postgres_db pg_isready -h db -p 5432 -U ${{ secrets.DB_USER }}; do
             sleep 3
           done
-      - name: Run Django Makemigrations  # ✅ 마이그레이션 파일 생성
-        run: |
-          docker exec django poetry run python manage.py makemigrations
-      - name: Run Django Migrations
-        run: |
-          docker exec django poetry run python manage.py migrate
 
       - name: Run isort (Import sorting)
         run: |
