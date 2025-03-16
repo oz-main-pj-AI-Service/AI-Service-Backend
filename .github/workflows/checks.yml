@@ -10,6 +10,15 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    env:  # ✅ GitHub Actions 환경 변수 설정
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_HOST: db  # ✅ 반드시 "db"로 설정
+      DB_PORT: 5432
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      DOCKER_ENV: true  # ✅ Docker 컨테이너 환경 변수
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -26,15 +35,6 @@ jobs:
       - name: Set up Docker BuildKit (for faster builds)
         run: |
           export DOCKER_BUILDKIT=1
-      - name: Set environment variables
-        run: |
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
-          echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
-          echo "DB_HOST=db" >> $GITHUB_ENV
-          echo "DB_PORT=5432" >> $GITHUB_ENV
-          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "DOCKER_ENV=true" >> $GITHUB_ENV
 
       - name: Create .env file  # ✅ .env 파일을 생성하는 단계 추가
         run: |
@@ -52,6 +52,19 @@ jobs:
 
       - name: Check running containers
         run: docker ps -a
+
+      - name: Wait for Redis to be ready  # ✅ Redis가 완전히 실행될 때까지 대기
+        run: |
+          until docker exec redis_service redis-cli ping | grep PONG; do
+            echo "Waiting for Redis..."
+            sleep 2
+          done
+
+      - name: Debug environment variables  # ✅ 컨테이너 내부 환경 변수 확인
+        run: |
+          docker exec django printenv | grep DOCKER_ENV
+          docker exec django printenv | grep DB_HOST
+          docker exec django printenv | grep DB_NAME
 
       - name: Run isort (Import sorting)
         run: |
