@@ -169,7 +169,7 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 if os.getenv("DOCKER_ENV", "false").lower() == "true":
     REDIS_HOST = "redis"
 else:
-    REDIS_HOST ="127.0.0.1"
+    REDIS_HOST = "127.0.0.1"
 
 CACHES = {
     "default": {
