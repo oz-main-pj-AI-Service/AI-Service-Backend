@@ -109,28 +109,17 @@ DATABASES = {
 import os
 
 # 실행 환경에 따라 DB 설정을 다르게 적용
-if os.getenv("DOCKER_ENV") == "true":  # Docker 컨테이너에서 실행될 때
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": "db",
-            "PORT": 5432,
-        }
+DB_HOST = "db" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "localhost"
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": DB_HOST,
+        "PORT": 5432,
     }
-else:  # 로컬 환경에서 실행될 때
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
-            "USER": os.getenv("DB_USER"),
-            "PASSWORD": os.getenv("DB_PASSWORD"),
-            "HOST": "localhost",
-            "PORT": 5432,
-        }
-    }
+}
 
 
 # Password validation
@@ -179,7 +168,9 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 REDIS_HOST = (
-    "redis" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "127.0.0.1"
+    "redis_service"
+    if os.getenv("DOCKER_ENV", "false").lower() == "true"
+    else "127.0.0.1"
 )
 CACHES = {
     "default": {
