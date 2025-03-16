@@ -1,5 +1,9 @@
+# .github/workflows/checks.yml
+
 name: Code Quality Checks
 
+# 트리거 이벤트 부분
+# 코드가 푸시되거나 풀 리퀘스트가 생성될 때 CI가 실행됩니다.
 on:
   push:
     branches:
@@ -8,64 +12,87 @@ on:
 
 jobs:
   ci:
+    # 가장 최신 버전의 Ubuntu를 OS 환경으로 설정합니다.
     runs-on: ubuntu-latest
 
+    # services 키워드를 사용하여 PostgreSQL 서비스를 설정
+    services:
+      db:
+        image: postgres:14
+        ports:
+          - 5432:5432
+        # Github Secrets에서 가져와서 env로 등록, Postgres 데이터베이스 연결 설정
+        env:
+          POSTGRES_USER: ${{ secrets.DB_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DB_NAME }}
+
+        # 옵션으로 postgres의 연결 상태를 확인. 10초 단위로 5번 재시도. 5초간 기다림.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
+      # CI 환경에서 코드를 체크아웃합니다.
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install Docker Compose
+      # CI 환경에서 사용할 파이썬 버전을 지정합니다.
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Set environment variables
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
+          echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
+          echo "DB_HOST=db" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> $GITHUB_ENV
 
-      - name: Remove docker-compose.override.yml (if exists)
+      # Poetry를 설치합니다.
+      - name: Install Poetry
         run: |
-          rm -f docker-compose.override.yml
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "${HOME}/.local/bin" >> $GITHUB_PATH
 
-      - name: Set up Docker BuildKit (for faster builds)
+      # Poetry를 사용하여 의존성 패키지들을 설치합니다.
+      - name: Install Packages & Libraries
         run: |
-          export DOCKER_BUILDKIT=1
+          poetry install
 
-      - name: Create .env file  # ✅ .env 파일을 생성하는 단계 추가
-        run: |
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "DB_HOST=db" >> .env
-          echo "DB_PORT=5432" >> .env
-          echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
-          echo "DOCKER_ENV=true" >> .env
-          echo "REDIS_HOST=redis" >> .env
-
-      - name: Start Docker containers
-        run: |
-          docker-compose up -d
-
-      - name: Check running containers
-        run: docker ps -a
-
-      - name: Wait for Redis to be ready  # ✅ Redis가 완전히 실행될 때까지 대기
-        run: |
-          until docker exec redis redis-cli ping | grep PONG; do
-            echo "Waiting for Redis..."
-            sleep 2
-          done
-
-      - name: Debug environment variables  # ✅ 컨테이너 내부 환경 변수 확인
-        run: |
-          docker exec django printenv | grep DOCKER_ENV
-          docker exec django printenv | grep DB_HOST
-          docker exec django printenv | grep REDIS_HOST
-
+      # isort를 사용하여 import 구문의 정렬 순서를 체크합니다.
       - name: Run isort (Import sorting)
         run: |
-          docker exec django poetry run isort . --check --diff
+          poetry run isort . --check --diff
 
+      # black을 사용하여 PEP8 코드 스타일을 준수했는지 체크합니다.
       - name: Run black (Code formatting)
         run: |
-          docker exec django poetry run black . --check
+          poetry run black . --check
 
-      - name: Run Django Tests
+      # DB 연결을 테스트
+      - name: Wait for PostgreSQL
         run: |
-          docker exec django poetry run python manage.py test
+          until pg_isready -h localhost -p ${{ secrets.DB_PORT }} -U ${{ secrets.DB_USER }}; do
+            sleep 3
+          done
+      - name: Set PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$(pwd)/app" >> $GITHUB_ENV  # ✅ PYTHONPATH 설정
+      # 정상적인 DB 연결을 확인했으니 마이그레이션 수행
+      - name: Run Django Migration
+        working-directory: app  #  working-directory 추가
+        run: |
+          poetry run python manage.py makemigrations
+          poetry run python manage.py migrate
+
+#       Django test를 사용하여 모든 앱의 테스트 코드를 실행합니다.
+      - name: Test python project
+        working-directory: app  #  working-directory 추가
+        run: |
+          poetry run python manage.py test
