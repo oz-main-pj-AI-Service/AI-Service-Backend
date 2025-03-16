@@ -38,5 +38,12 @@ django-extensions = "^3.2.3"
 profile = "black"
 skip_glob = ["*/migrations/*.py"]
 
+[tool.black]
+extend-exclude = '''
+/(
+    migrations/.*
+)/
+'''
+
 [tool.poetry]
 package-mode = false
