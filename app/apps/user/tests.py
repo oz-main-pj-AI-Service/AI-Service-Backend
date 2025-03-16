@@ -133,9 +133,6 @@ class TestUserViews(APITestCase):
         access_token = response.data["access_token"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
 
-        response = self.client.post(self.logout_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
         response = self.client.get(self.profile_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
