@@ -36,6 +36,7 @@ jobs:
           echo "DB_PORT=5432" >> .env
           echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
           echo "DOCKER_ENV=true" >> .env
+          echo "REDIS_HOST=redis" >> .env
 
       - name: Start Docker containers
         run: |
