@@ -26,16 +26,24 @@ jobs:
       - name: Set up Docker BuildKit (for faster builds)
         run: |
           export DOCKER_BUILDKIT=1
-
       - name: Set environment variables
         run: |
           echo "DB_NAME=${{ secrets.DB_NAME }}" >> $GITHUB_ENV
           echo "DB_USER=${{ secrets.DB_USER }}" >> $GITHUB_ENV
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> $GITHUB_ENV
-          echo "DB_HOST=db" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
           echo "DB_PORT=5432" >> $GITHUB_ENV
-          echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> $GITHUB_ENV
-          echo "DOCKER_ENV=true" >> $GITHUB_ENV
+          echo "DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> $GITHUB_ENV
+
+      - name: Create .env file  # ✅ .env 파일을 생성하는 단계 추가
+        run: |
+          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
+          echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
+          echo "DB_HOST=db" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> .env
+          echo "DOCKER_ENV=true" >> .env
 
       - name: Start Docker containers
         run: |
