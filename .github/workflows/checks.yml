@@ -18,6 +18,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
+      - name: Remove docker-compose.override.yml (if exists)
+        run: |
+          rm -f docker-compose.override.yml
 
       - name: Set up Docker BuildKit (for faster builds)
         run: |
