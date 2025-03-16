@@ -55,7 +55,7 @@ jobs:
         run: |
           docker exec django printenv | grep DOCKER_ENV
           docker exec django printenv | grep DB_HOST
-          docker exec django printenv | grep DB_NAME
+          docker exec django printenv | grep REDIS_HOST
 
       - name: Run isort (Import sorting)
         run: |
