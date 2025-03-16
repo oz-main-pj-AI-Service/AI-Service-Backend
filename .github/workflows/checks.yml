@@ -44,9 +44,9 @@ jobs:
       - name: Check running containers
         run: docker ps -a
 
-      - name: Wait for Redis to be ready
+      - name: Wait for Redis to be ready  # ✅ Redis가 완전히 실행될 때까지 대기
         run: |
-          until docker exec django redis-cli -h redis ping | grep PONG; do
+          until docker exec redis redis-cli ping | grep PONG; do
             echo "Waiting for Redis..."
             sleep 2
           done
