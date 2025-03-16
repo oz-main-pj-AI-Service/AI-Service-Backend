@@ -36,6 +36,12 @@ services:
       - "5432:5432"
     env_file:
       - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234  # ✅ 비밀번호 설정
+      POSTGRES_DB: aiservice  # ✅ DB 자동 생성
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d  # ✅ 초기 SQL 실행 폴더 마운트
     networks:
       - backend
 
