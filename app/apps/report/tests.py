@@ -1,4 +1,4 @@
-import uuid
+
 
 from apps.report.models import Report
 from django.contrib.auth import get_user_model
@@ -261,3 +261,4 @@ class ReportModelTest(TestCase):
         updated_report = Report.objects.get(id=report_id)
         self.assertIsNone(updated_report.admin_id)
         self.assertEqual(updated_report.admin_comment, "답변입니다.")  # 코멘트는 유지됨
+
