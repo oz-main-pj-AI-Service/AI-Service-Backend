@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # OWN APP
     "apps.ai",
-    "apps.food",
     "apps.log",
     "apps.report",
     "apps.user",
