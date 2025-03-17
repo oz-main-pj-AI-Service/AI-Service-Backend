@@ -1,4 +1,7 @@
-from django.urls import include
-from django.urls.conf import path
 
-urlpatterns = [path("api/ai/", include("apps.ai.urls"))]
+from django.urls.conf import include, path
+
+urlpatterns = [
+    path("api/user/", include("apps.user.urls")),
+    path("api/reports/", include("apps.report.urls")),
+]

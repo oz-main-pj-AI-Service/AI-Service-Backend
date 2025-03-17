@@ -29,7 +29,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
@@ -42,16 +42,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    # OWN APP
-    "apps.ai",
-    "apps.food",
-    "apps.log",
-    "apps.report",
-    "apps.user",
-    # THIRD PARTY
-    "drf_yasg",
-    "rest_framework",
-    "rest_framework_simplejwt",
     # Django_APP
     "django.contrib.admin",
     "django.contrib.auth",
@@ -59,6 +49,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # OWN APP
+    "apps.ai",
+    "apps.log",
+    "apps.report",
+    "apps.user",
+    # THIRD PARTY
+    "drf_yasg",
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -102,7 +102,21 @@ DATABASES = {
         "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": "localhost",
+        "HOST": "db",
+        "PORT": 5432,
+    }
+}
+import os
+
+# 실행 환경에 따라 DB 설정을 다르게 적용
+DB_HOST = "db" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "localhost"
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": DB_HOST,
         "PORT": 5432,
     }
 }
@@ -150,11 +164,17 @@ MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
+
+if os.getenv("DOCKER_ENV", "false").lower() == "true":
+    REDIS_HOST = os.getenv("REDIS_HOST")
+else:
+    REDIS_HOST = "localhost"
 
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # Redis 서버 주소
+        "LOCATION": f"redis://{REDIS_HOST}:6379/1",  # Redis 서버 주소
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -165,7 +185,9 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("utils.authentication.RedisJWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "apps.utils.authentication.RedisJWTAuthentication",
+    ),
 }
 
 SIMPLE_JWT = {
@@ -179,3 +201,15 @@ SIMPLE_JWT = {
 }
 
 AUTH_USER_MODEL = "user.User"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.naver.com"
+EMAIL_USE_TLS = True  # 보안연결
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.getenv("NAVER_USER")
+EMAIL_HOST_PASSWORD = os.getenv("NAVER_PASSWORD")
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
+NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")

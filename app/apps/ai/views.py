@@ -1,3 +1,4 @@
+
 import json
 
 import google.generativeai as genai
@@ -481,3 +482,4 @@ class FoodRecommendationView(View):
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
+
