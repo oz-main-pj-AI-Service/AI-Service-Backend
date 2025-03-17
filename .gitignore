@@ -7,6 +7,10 @@
 
 dump.rdb
 
+# Django migrations 폴더 제외
+**/migrations/
+!**/migrations/__init__.py
+
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/**/tasks.xml

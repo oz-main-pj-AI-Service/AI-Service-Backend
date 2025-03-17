@@ -1,5 +1,3 @@
-import uuid
-
 from apps.report.models import Report
 from django.contrib.auth import get_user_model
 from django.test import TestCase
