@@ -43,7 +43,6 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     # OWN APP
     "apps.ai",
-    "apps.food",
     "apps.log",
     "apps.report",
     "apps.user",
