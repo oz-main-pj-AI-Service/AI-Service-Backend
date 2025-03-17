@@ -5,9 +5,9 @@ redis_client = redis.StrictRedis(
 )
 
 
-def add_to_blacklist(token):
-    """JWT를 Redis 블랙리스트에 추가"""
-    redis_client.set(token, "blacklisted", ex=3600)  # 1시간 후 만료
+def add_to_blacklist(token, expires_in):
+    """Redis에 블랙리스트 추가"""
+    redis_client.setex(f"blacklist:{token}", expires_in, "blacklisted")
 
 
 def is_blacklisted(token):
