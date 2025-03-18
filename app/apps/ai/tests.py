@@ -2,7 +2,6 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
-# 모델 임포트
 from apps.ai.models import (
     AIFoodRequest,
     AIFoodResult,
@@ -13,6 +12,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APIClient
 
 # 테스트 시작 시 API 키 확인
 API_KEY = os.environ.get("GEMINI_API_KEY") or settings.GEMINI_API_KEY
@@ -147,23 +148,27 @@ class AIApiTestCase(TestCase):
     def setUp(self):
         # 테스트용 사용자 생성
         self.user = User.objects.create_user(
-            email="existing@example.com",
+            email="test@example.com",
             nickname="test",
             password="test1234",
             phone_number="1234",
         )
-        self.client = Client()
+        self.client = APIClient()
+        
+        # API 엔드포인트 URL 설정
+        self.recipe_url = reverse("ai:recipe_recommendation")
+        self.health_url = reverse("ai:health_recommendation")
+        self.food_url = reverse("ai:food_recommendation")
 
     @patch("google.generativeai.GenerativeModel.generate_content")
-    def test_recipe_recommendation(self, mock_generate_content):
-        """레시피 추천 API 테스트"""
+    def test_recipe_recommendation_anonymous(self, mock_generate_content):
+        """비로그인 사용자 레시피 추천 API 테스트"""
         # 모의 API 응답 설정
         mock_generate_content.side_effect = [
             mock_ingredients_valid_response,
             mock_recipe_response,
         ]
 
-        url = "/api/ai/recipe-recommendation/"
         data = {
             "ingredients": ["쌀", "김치", "참기름", "계란"],
             "serving_size": 2,
@@ -172,20 +177,59 @@ class AIApiTestCase(TestCase):
         }
 
         response = self.client.post(
-            url, data=json.dumps(data), content_type="application/json"
+            self.recipe_url, data=data, format="json"
         )
 
         # 응답 확인 및 디버깅
         print(f"Recipe Response Status: {response.status_code}")
-        result = response.json()
-
-        self.assertEqual(response.status_code, 200)
-
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue("success" in response.data)
+        self.assertTrue(response.data["success"])
+        
         # 데이터베이스에 저장되었는지 확인
         request_count = AIFoodRequest.objects.filter(request_type="recipe").count()
         recipe_count = AIRecipeRequest.objects.all().count()
         self.assertGreater(request_count, 0)
         self.assertGreater(recipe_count, 0)
+        
+        # user 필드가 None인지 확인 (익명 사용자)
+        ai_request = AIFoodRequest.objects.filter(request_type="recipe").first()
+        self.assertIsNone(ai_request.user)
+
+    @patch("google.generativeai.GenerativeModel.generate_content")
+    def test_recipe_recommendation_authenticated(self, mock_generate_content):
+        """로그인 사용자 레시피 추천 API 테스트"""
+        # 모의 API 응답 설정
+        mock_generate_content.side_effect = [
+            mock_ingredients_valid_response,
+            mock_recipe_response,
+        ]
+
+        # 로그인
+        self.client.force_authenticate(user=self.user)
+
+        data = {
+            "ingredients": ["쌀", "김치", "참기름", "계란"],
+            "serving_size": 2,
+            "cooking_time": 30,
+            "difficulty": "보통",
+        }
+
+        response = self.client.post(
+            self.recipe_url, data=data, format="json"
+        )
+
+        # 응답 확인
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 데이터베이스에 저장되었는지 확인
+        ai_request = AIFoodRequest.objects.filter(
+            request_type="recipe", 
+            user=self.user
+        ).first()
+        self.assertIsNotNone(ai_request)
+        self.assertEqual(ai_request.user, self.user)
 
     @patch("google.generativeai.GenerativeModel.generate_content")
     def test_invalid_ingredients(self, mock_generate_content):
@@ -193,27 +237,20 @@ class AIApiTestCase(TestCase):
         # 모의 API 응답 설정
         mock_generate_content.return_value = mock_ingredients_invalid_response
 
-        url = "/api/ai/recipe-recommendation/"
         data = {
             "ingredients": ["쌀", "김치", "컴퓨터", "자동차"],  # 잘못된 식재료 포함
             "serving_size": 2,
             "cooking_time": 30,
         }
 
-        {
-            "ingredients": ["안녕 나는 김이준이야"],  # 식재료가 아닌 대화형 발생
-            "serving_size": 1,
-            "cooking_time": 55,
-        }
-
         response = self.client.post(
-            url, data=json.dumps(data), content_type="application/json"
+            self.recipe_url, data=data, format="json"
         )
 
         print(f"Invalid Ingredients Status: {response.status_code}")
-        if response.status_code == 400:
-            result = response.json()
-            self.assertTrue("error" in result)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue("error" in response.data)
+        self.assertTrue("invalid_items" in response.data)
 
     @patch("google.generativeai.GenerativeModel.generate_content")
     def test_health_recommendation(self, mock_generate_content):
@@ -221,7 +258,6 @@ class AIApiTestCase(TestCase):
         # 모의 API 응답 설정
         mock_generate_content.return_value = mock_health_response
 
-        url = "/api/ai/health-recommendation/"
         data = {
             "weight": 70,
             "goal": "diet",
@@ -231,21 +267,56 @@ class AIApiTestCase(TestCase):
         }
 
         response = self.client.post(
-            url, data=json.dumps(data), content_type="application/json"
+            self.health_url, data=data, format="json"
         )
 
         print(f"Health Response Status: {response.status_code}")
-
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue("success" in response.data)
+        self.assertTrue(response.data["success"])
 
         # 데이터베이스에 저장되었는지 확인
         request_count = AIFoodRequest.objects.filter(request_type="health").count()
-        health_profile_count = AIUserHealthRequest.objects.all().count()
         food_results_count = AIFoodResult.objects.filter(request_type="health").count()
 
         self.assertGreater(request_count, 0)
-        self.assertGreater(health_profile_count, 0)
         self.assertGreater(food_results_count, 0)
+        
+        # 로그인하지 않은 경우 건강 프로필은 생성되지 않음
+        health_profile_count = AIUserHealthRequest.objects.all().count()
+        self.assertEqual(health_profile_count, 0)
+
+    @patch("google.generativeai.GenerativeModel.generate_content")
+    def test_health_recommendation_authenticated(self, mock_generate_content):
+        """로그인 사용자 건강 기반 음식 추천 API 테스트"""
+        # 모의 API 응답 설정
+        mock_generate_content.return_value = mock_health_response
+
+        # 로그인
+        self.client.force_authenticate(user=self.user)
+        
+        data = {
+            "weight": 70,
+            "goal": "diet",
+            "exercise_frequency": "two_to_three",
+            "allergies": ["땅콩"],
+            "disliked_foods": ["당근"],
+        }
+
+        response = self.client.post(
+            self.health_url, data=data, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 건강 프로필이 생성되었는지 확인
+        health_profile = AIUserHealthRequest.objects.filter(user=self.user).first()
+        self.assertIsNotNone(health_profile)
+        self.assertEqual(health_profile.goal, "diet")
+        
+        # 식단 결과도 확인
+        food_results = AIFoodResult.objects.filter(user=self.user, request_type="health")
+        self.assertGreater(food_results.count(), 0)
 
     @patch("google.generativeai.GenerativeModel.generate_content")
     def test_food_recommendation(self, mock_generate_content):
@@ -253,7 +324,6 @@ class AIApiTestCase(TestCase):
         # 모의 API 응답 설정
         mock_generate_content.return_value = mock_food_response
 
-        url = reverse("ai:recipe_recommendation")
         data = {
             "cuisine_type": "한식",
             "food_base": "밥",
@@ -261,15 +331,15 @@ class AIApiTestCase(TestCase):
             "dietary_type": "건강한 맛",
             "last_meal": "샐러드",
         }
-        pass
+
         response = self.client.post(
-            url, data=json.dumps(data), content_type="application/json"
+            self.food_url, data=data, format="json"
         )
-        print(response.json())
+
         print(f"Food Response Status: {response.status_code}")
-
-        self.assertEqual(response.status_code, 200)
-
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue("success" in response.data)
+        
         # 데이터베이스에 저장되었는지 확인
         request_count = AIFoodRequest.objects.filter(request_type="food").count()
         food_results_count = AIFoodResult.objects.filter(request_type="food").count()
@@ -280,40 +350,52 @@ class AIApiTestCase(TestCase):
     def test_missing_required_fields(self):
         """필수 필드 누락 테스트"""
         # 레시피 추천 - ingredients 필드 누락
-        url = "/api/ai/recipe-recommendation/"
         data = {"serving_size": 2, "cooking_time": 30}
 
         response = self.client.post(
-            url, data=json.dumps(data), content_type="application/json"
+            self.recipe_url, data=data, format="json"
         )
 
-        self.assertEqual(response.status_code, 400)
-        result = response.json()
-        self.assertTrue("error" in result)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue("error" in response.data)
+        
+        # 건강 추천 - weight 필드 누락
+        data = {
+            "goal": "diet",
+            "exercise_frequency": "two_to_three",
+        }
+        
+        response = self.client.post(
+            self.health_url, data=data, format="json"
+        )
+        
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue("error" in response.data)
 
 
 class APIErrorHandlingTestCase(TestCase):
     def setUp(self):
         # 테스트용 사용자 생성
         self.user = User.objects.create_user(
-            email="admin@admin.com", password="12345678"
+            email="admin@admin.com", 
+            nickname="admin",
+            password="12345678",
+            phone_number="01012345678"
         )
-        self.client = Client()
+        self.client = APIClient()
+        self.recipe_url = reverse("ai:recipe_recommendation")
 
     def test_invalid_json(self):
-        """잘못된 JSON 형식 테스트"""
-        url = "/api/ai/recipe-recommendation/"
-        # 잘못된 JSON 형식
-        invalid_data = (
-            "{ingredients: ['쌀', '김치'], serving_size: 2, cooking_time: 30}"
-        )
-
+        """잘못된 요청 형식 테스트"""
+        # Django REST Framework는 JSON 파싱 오류를 자동으로 처리하므로
+        # 이 테스트는 실패할 가능성이 있음
+        
+        # 잘못된 데이터 (JSON이 아닌 문자열)
         response = self.client.post(
-            url, data=invalid_data, content_type="application/json"
+            self.recipe_url,
+            data="이건 JSON이 아닙니다",
+            content_type="application/json"
         )
 
-        print(f"Invalid JSON Status: {response.status_code}")
-
-        self.assertEqual(response.status_code, 500)
-        result = response.json()
-        self.assertTrue("error" in result)
+        print(f"Invalid JSON Response Status: {response.status_code}")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
