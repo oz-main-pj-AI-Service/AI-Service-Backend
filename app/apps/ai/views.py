@@ -86,7 +86,6 @@ class RecipeRecommendationView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-
             # 필수 입력 필드 검증
             required_fields = ["ingredients", "serving_size", "cooking_time"]
             for field in required_fields:
@@ -243,7 +242,6 @@ class HealthBasedRecommendationView(APIView):
                     {"error": "잘못된 JSON 형식입니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
 
             # 필수 입력 필드 검증
             required_fields = ["weight", "goal", "exercise_frequency"]

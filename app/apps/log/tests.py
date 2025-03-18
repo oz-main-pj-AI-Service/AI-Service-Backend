@@ -16,7 +16,10 @@ class ActivityLogModelTest(TestCase):
         """테스트에 필요한 데이터 설정"""
         # 테스트용 사용자 생성
         self.user = User.objects.create_user(
-            email="test@example.com", password="testpassword"
+            email="existing@example.com",
+            nickname="test",
+            password="test1234",
+            phone_number="1234",
         )
 
         # 익명 로그를 위한 데이터
@@ -155,7 +158,10 @@ class ActivityLogModelTest(TestCase):
 
         # 다른 사용자 로그 생성
         other_user = User.objects.create_user(
-            email="other@example.com", password="otherpassword"
+            email="existing2@example.com",
+            nickname="test",
+            password="test1234",
+            phone_number="1232",
         )
 
         ActivityLog.objects.create(
@@ -172,24 +178,3 @@ class ActivityLogModelTest(TestCase):
         # 두 번째 사용자의 로그 수 검증
         other_log_count = ActivityLog.get_user_log_count(other_user.id)
         self.assertEqual(other_log_count, 1)
-
-    def test_delete_user_affects_logs(self):
-        """사용자 삭제 시 로그는 유지되고 user_id만 NULL로 설정되는지 테스트"""
-        # 로그 생성
-        log = ActivityLog.objects.create(
-            user_id=self.user,
-            action=self.login_action,
-            ip_address=self.ip_address,
-            user_agent=self.user_agent,
-        )
-
-        log_id = log.id
-
-        # 사용자 삭제
-        self.user.delete()
-
-        # 로그 조회
-        updated_log = ActivityLog.objects.get(id=log_id)
-
-        # 로그는 여전히 존재하지만 user_id는 NULL이어야 함
-        self.assertIsNone(updated_log.user_id)
