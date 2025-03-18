@@ -50,7 +50,13 @@ def validate_ingredients(ingredients):
 
     try:
         response = model.generate_content(prompt)
-        result = json.loads(response.text)
+
+        # 코드 블록 제거 처리 추가
+        response_text = response.text
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+
+        result = json.loads(response_text)
 
         if isinstance(result, list) and len(result) > 0:
             invalid_items = result
@@ -70,7 +76,16 @@ class RecipeRecommendationView(APIView):
 
     def post(self, request):
         try:
-            data = request.data
+
+            # JSON 파싱 오류를 명시적으로 처리
+            try:
+                data = request.data
+            except Exception as json_error:
+                return Response(
+                    {"error": "잘못된 JSON 형식입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
 
             # 필수 입력 필드 검증
             required_fields = ["ingredients", "serving_size", "cooking_time"]
@@ -147,7 +162,18 @@ class RecipeRecommendationView(APIView):
 
             try:
                 # JSON 파싱 시도
-                recipe_data = json.loads(response.text)
+                # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
+                response_text = response.text
+
+                # 코드 블록 삭제 (```json ... ``` 제거)
+                if "```json" in response_text:
+                    # ```json과 ``` 사이의 내용만 추출
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
+                # JSON 파싱
+                recipe_data = json.loads(response_text)
 
                 # AI 응답 저장
                 ai_request.response_data = recipe_data
@@ -208,7 +234,16 @@ class HealthBasedRecommendationView(APIView):
 
     def post(self, request):
         try:
-            data = request.data
+
+            # JSON 파싱 오류를 명시적으로 처리
+            try:
+                data = request.data
+            except Exception as json_error:
+                return Response(
+                    {"error": "잘못된 JSON 형식입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
 
             # 필수 입력 필드 검증
             required_fields = ["weight", "goal", "exercise_frequency"]
@@ -309,7 +344,18 @@ class HealthBasedRecommendationView(APIView):
 
             try:
                 # JSON 파싱 시도
-                meal_data = json.loads(response.text)
+                # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
+                response_text = response.text
+
+                # 코드 블록 삭제 (```json ... ``` 제거)
+                if "```json" in response_text:
+                    # ```json과 ``` 사이의 내용만 추출
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
+                # JSON 파싱
+                meal_data = json.loads(response_text)
 
                 # AI 응답 저장
                 ai_request.response_data = meal_data
@@ -364,7 +410,15 @@ class FoodRecommendationView(APIView):
 
     def post(self, request):
         try:
-            data = request.data
+
+            # JSON 파싱 오류를 명시적으로 처리
+            try:
+                data = request.data
+            except Exception as json_error:
+                return Response(
+                    {"error": "잘못된 JSON 형식입니다."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             # 인증된 사용자가 있으면 사용, 없으면 None 사용
             user = request.user if request.user.is_authenticated else None
@@ -440,7 +494,18 @@ class FoodRecommendationView(APIView):
 
             try:
                 # JSON 파싱 시도
-                food_data = json.loads(response.text)
+                # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
+                response_text = response.text
+
+                # 코드 블록 삭제 (```json ... ``` 제거)
+                if "```json" in response_text:
+                    # ```json과 ``` 사이의 내용만 추출
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
+                # JSON 파싱
+                food_data = json.loads(response_text)
 
                 # AI 응답 저장
                 ai_request.response_data = food_data

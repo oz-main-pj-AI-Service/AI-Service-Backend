@@ -2,7 +2,6 @@ import json
 import os
 from unittest.mock import MagicMock, patch
 
-# 모델 임포트
 from apps.ai.models import (
     AIFoodRequest,
     AIFoodResult,
