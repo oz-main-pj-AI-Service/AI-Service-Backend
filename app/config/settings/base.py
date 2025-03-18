@@ -96,24 +96,12 @@ WSGI_APPLICATION = "config.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
-        "USER": os.getenv("DB_USER"),
-        "PASSWORD": os.getenv("DB_PASSWORD"),
-        "HOST": "db",
-        "PORT": 5432,
-    }
-}
-import os
-
 # 실행 환경에 따라 DB 설정을 다르게 적용
 DB_HOST = "db" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "localhost"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME"),  # 환경 변수 읽기
+        "NAME": os.getenv("DB_NAME"),
         "USER": os.getenv("DB_USER"),
         "PASSWORD": os.getenv("DB_PASSWORD"),
         "HOST": DB_HOST,
