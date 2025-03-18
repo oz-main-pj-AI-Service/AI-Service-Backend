@@ -17,11 +17,26 @@ services:
         condition: service_healthy  # DB도 실행될 때까지 대기
     volumes:
       - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
+      - ./static:/Main-pj-AI-Service/app/static
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
     command: >
       sh -c "python manage.py makemigrations &&
              python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py collectstatic --noinput &&
+             gunicorn --workers 4 --bind 0.0.0.0:8000 config.wsgi:application"
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"  # Nginx가 80포트에서 요청 수신
+    depends_on:
+      - django
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - static_volume:/usr/share/nginx/html/static
     networks:
       - backend
 
@@ -48,9 +63,9 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1234
-      POSTGRES_DB: aiservice
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     volumes:
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
@@ -64,4 +79,6 @@ services:
 
 networks:
   backend:
+    driver: bridge
+  frontend:
     driver: bridge

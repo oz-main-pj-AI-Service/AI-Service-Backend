@@ -16,10 +16,13 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-interaction --no-root && poetry show django
 
 # 프로젝트 파일 복사
-COPY ../. .
+COPY . /Main-pj-AI-Service/
+
+# 정적 파일 수집
+RUN python manage.py collectstatic --noinput
 
 # 포트 노출
 EXPOSE 8000
 
 # 명령어 실행
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
