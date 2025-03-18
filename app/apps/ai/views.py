@@ -38,13 +38,13 @@ def validate_ingredients(ingredients):
     prompt = f"""
     다음 목록에서 실제 요리에 사용되는 식재료가 아닌 항목이 있는지 확인해주세요:
     {', '.join(ingredients)}
-    
+
     식재료가 아닌 항목만 JSON 배열 형식으로 반환해주세요. 
     모두 유효한 식재료라면 빈 배열을 반환하세요:
-    
+
     예시 응답 형식:
     ["항목1", "항목2"]
-    
+
     JSON 형식의 배열만 반환하고 다른 설명은 포함하지 마세요.
     """
 
@@ -76,6 +76,7 @@ class RecipeRecommendationView(APIView):
 
     def post(self, request):
         try:
+
             # JSON 파싱 오류를 명시적으로 처리
             try:
                 data = request.data
@@ -84,6 +85,7 @@ class RecipeRecommendationView(APIView):
                     {"error": "잘못된 JSON 형식입니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
 
             # 필수 입력 필드 검증
             required_fields = ["ingredients", "serving_size", "cooking_time"]
@@ -125,7 +127,7 @@ class RecipeRecommendationView(APIView):
             몇인분: {data['serving_size']}
             소요 시간: {data['cooking_time']}분
             난이도: {difficulty}
-            
+
             다음 형식으로 반환해주세요:
             {{
                 "name": "요리이름",
@@ -151,7 +153,7 @@ class RecipeRecommendationView(APIView):
                     "fat": 지방(g)
                 }}
             }}
-            
+
             JSON 형식으로만 반환해주세요. 다른 텍스트나 설명은 포함하지 마세요.
             """
 
@@ -232,6 +234,7 @@ class HealthBasedRecommendationView(APIView):
 
     def post(self, request):
         try:
+
             # JSON 파싱 오류를 명시적으로 처리
             try:
                 data = request.data
@@ -240,6 +243,7 @@ class HealthBasedRecommendationView(APIView):
                     {"error": "잘못된 JSON 형식입니다."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
 
             # 필수 입력 필드 검증
             required_fields = ["weight", "goal", "exercise_frequency"]
@@ -284,9 +288,9 @@ class HealthBasedRecommendationView(APIView):
             운동 빈도: {data['exercise_frequency']} (주1회/주2~3회/주4~5회/운동안함)
             알레르기: {', '.join(allergies) if allergies else '없음'}
             비선호 음식: {', '.join(disliked_foods) if disliked_foods else '없음'}
-            
+
             하루 3끼 식단(아침, 점심, 저녁)을 추천해주세요. 
-            
+
             다음 JSON 형식으로 반환해주세요:
             {{
                 "daily_calorie_target": 하루 권장 칼로리,
@@ -331,7 +335,7 @@ class HealthBasedRecommendationView(APIView):
                 ],
                 "recommendation_reason": "추천 이유 및 설명"
             }}
-            
+
             JSON 형식으로만 반환해주세요. 다른 텍스트나 설명은 포함하지 마세요.
             """
 
@@ -406,6 +410,7 @@ class FoodRecommendationView(APIView):
 
     def post(self, request):
         try:
+
             # JSON 파싱 오류를 명시적으로 처리
             try:
                 data = request.data
@@ -438,7 +443,7 @@ class FoodRecommendationView(APIView):
             맛 선호도: {taste if taste else '특별한 선호 없음'} (단맛/고소한맛/매운맛/상큼한맛)
             식단 유형: {dietary_type if dietary_type else '특별한 선호 없음'} (자극적/건강한 맛)
             최근 식사: {last_meal if last_meal else '정보 없음'}
-            
+
             다음 JSON 형식으로 3가지 추천 음식을 반환해주세요:
             {{
                 "recommendations": [
@@ -480,7 +485,7 @@ class FoodRecommendationView(APIView):
                     }}
                 ]
             }}
-            
+
             JSON 형식으로만 반환해주세요. 다른 텍스트나 설명은 포함하지 마세요.
             """
 
