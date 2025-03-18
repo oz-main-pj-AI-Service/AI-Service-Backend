@@ -17,7 +17,7 @@ services:
         condition: service_healthy  # DB도 실행될 때까지 대기
     volumes:
       - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
-      - ./static:/Main-pj-AI-Service/app/static
+      - static_volume:/Main-pj-AI-Service/app/static
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
     command: >
       sh -c "python manage.py makemigrations &&
@@ -82,3 +82,6 @@ networks:
     driver: bridge
   frontend:
     driver: bridge
+
+volumes:
+  static_volume:
