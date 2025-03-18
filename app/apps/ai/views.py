@@ -50,12 +50,12 @@ def validate_ingredients(ingredients):
 
     try:
         response = model.generate_content(prompt)
-        
+
         # 코드 블록 제거 처리 추가
         response_text = response.text
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
-            
+
         result = json.loads(response_text)
 
         if isinstance(result, list) and len(result) > 0:
@@ -71,6 +71,7 @@ class RecipeRecommendationView(APIView):
     """
     메인 페이지: 보유 식재료 기반 요리 추천 AI 시스템
     """
+
     # permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
 
     def post(self, request):
@@ -81,7 +82,7 @@ class RecipeRecommendationView(APIView):
             except Exception as json_error:
                 return Response(
                     {"error": "잘못된 JSON 형식입니다."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # 필수 입력 필드 검증
@@ -89,8 +90,8 @@ class RecipeRecommendationView(APIView):
             for field in required_fields:
                 if field not in data:
                     return Response(
-                        {"error": f"{field} 필드가 필요합니다."}, 
-                        status=status.HTTP_400_BAD_REQUEST
+                        {"error": f"{field} 필드가 필요합니다."},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
 
             # 식재료 유효성 검사
@@ -103,7 +104,7 @@ class RecipeRecommendationView(APIView):
                         "error": "저는 식재료만 인식할 수 있어요🥲 식재료만 입력해주세요!",
                         "invalid_items": invalid_items,
                     },
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # 선택적 필드에 기본값 설정
@@ -112,11 +113,9 @@ class RecipeRecommendationView(APIView):
             # AI 요청 데이터 저장
             # 인증된 사용자가 있으면 사용, 없으면 None 사용
             user = request.user if request.user.is_authenticated else None
-            
+
             ai_request = AIFoodRequest.objects.create(
-                user=user,
-                request_type="recipe", 
-                request_data=data
+                user=user, request_type="recipe", request_data=data
             )
 
             # Gemini API 요청 프롬프트 구성
@@ -163,12 +162,14 @@ class RecipeRecommendationView(APIView):
                 # JSON 파싱 시도
                 # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
                 response_text = response.text
-                
+
                 # 코드 블록 삭제 (```json ... ``` 제거)
                 if "```json" in response_text:
                     # ```json과 ``` 사이의 내용만 추출
-                    response_text = response_text.split("```json")[1].split("```")[0].strip()
-                
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
                 # JSON 파싱
                 recipe_data = json.loads(response_text)
 
@@ -200,7 +201,7 @@ class RecipeRecommendationView(APIView):
                         "recipe_id": str(recipe.id),
                         "recipe": recipe_data,
                     },
-                    status=status.HTTP_200_OK
+                    status=status.HTTP_200_OK,
                 )
 
             except json.JSONDecodeError:
@@ -213,13 +214,12 @@ class RecipeRecommendationView(APIView):
                         "error": "AI 응답을 파싱할 수 없습니다.",
                         "raw_response": response.text,
                     },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -227,6 +227,7 @@ class HealthBasedRecommendationView(APIView):
     """
     AI 목표 기반 추천: 건강 목표에 따른 음식 추천
     """
+
     # permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
 
     def post(self, request):
@@ -237,16 +238,16 @@ class HealthBasedRecommendationView(APIView):
             except Exception as json_error:
                 return Response(
                     {"error": "잘못된 JSON 형식입니다."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-            
+
             # 필수 입력 필드 검증
             required_fields = ["weight", "goal", "exercise_frequency"]
             for field in required_fields:
                 if field not in data:
                     return Response(
-                        {"error": f"{field} 필드가 필요합니다."}, 
-                        status=status.HTTP_400_BAD_REQUEST
+                        {"error": f"{field} 필드가 필요합니다."},
+                        status=status.HTTP_400_BAD_REQUEST,
                     )
 
             # 알레르기 및 비선호 음식 정보
@@ -272,9 +273,7 @@ class HealthBasedRecommendationView(APIView):
 
             # AI 요청 데이터 저장
             ai_request = AIFoodRequest.objects.create(
-                user=user, 
-                request_type="health", 
-                request_data=data
+                user=user, request_type="health", request_data=data
             )
 
             # Gemini API 요청 프롬프트 구성
@@ -343,12 +342,14 @@ class HealthBasedRecommendationView(APIView):
                 # JSON 파싱 시도
                 # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
                 response_text = response.text
-                
+
                 # 코드 블록 삭제 (```json ... ``` 제거)
                 if "```json" in response_text:
                     # ```json과 ``` 사이의 내용만 추출
-                    response_text = response_text.split("```json")[1].split("```")[0].strip()
-                
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
                 # JSON 파싱
                 meal_data = json.loads(response_text)
 
@@ -374,7 +375,7 @@ class HealthBasedRecommendationView(APIView):
                         "request_id": ai_request.id,
                         "meal_plan": meal_data,
                     },
-                    status=status.HTTP_200_OK
+                    status=status.HTTP_200_OK,
                 )
 
             except json.JSONDecodeError:
@@ -387,13 +388,12 @@ class HealthBasedRecommendationView(APIView):
                         "error": "AI 응답을 파싱할 수 없습니다.",
                         "raw_response": response.text,
                     },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 
@@ -401,6 +401,7 @@ class FoodRecommendationView(APIView):
     """
     AI 기반 음식 추천: 사용자 선호도에 따른 음식 추천
     """
+
     # permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
 
     def post(self, request):
@@ -411,7 +412,7 @@ class FoodRecommendationView(APIView):
             except Exception as json_error:
                 return Response(
                     {"error": "잘못된 JSON 형식입니다."},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # 인증된 사용자가 있으면 사용, 없으면 None 사용
@@ -419,9 +420,7 @@ class FoodRecommendationView(APIView):
 
             # AI 요청 데이터 저장
             ai_request = AIFoodRequest.objects.create(
-                user=user, 
-                request_type="food", 
-                request_data=data
+                user=user, request_type="food", request_data=data
             )
 
             # 음식 선호도 정보
@@ -492,12 +491,14 @@ class FoodRecommendationView(APIView):
                 # JSON 파싱 시도
                 # Gemini API가 코드 블록(```json)으로 감싸진 응답을 반환하는 경우를 처리
                 response_text = response.text
-                
+
                 # 코드 블록 삭제 (```json ... ``` 제거)
                 if "```json" in response_text:
                     # ```json과 ``` 사이의 내용만 추출
-                    response_text = response_text.split("```json")[1].split("```")[0].strip()
-                
+                    response_text = (
+                        response_text.split("```json")[1].split("```")[0].strip()
+                    )
+
                 # JSON 파싱
                 food_data = json.loads(response_text)
 
@@ -523,7 +524,7 @@ class FoodRecommendationView(APIView):
                         "request_id": ai_request.id,
                         "recommendations": food_data,
                     },
-                    status=status.HTTP_200_OK
+                    status=status.HTTP_200_OK,
                 )
 
             except json.JSONDecodeError:
@@ -536,11 +537,10 @@ class FoodRecommendationView(APIView):
                         "error": "AI 응답을 파싱할 수 없습니다.",
                         "raw_response": response.text,
                     },
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
 
         except Exception as e:
             return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

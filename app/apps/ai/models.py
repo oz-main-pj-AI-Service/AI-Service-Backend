@@ -42,7 +42,9 @@ class AIFoodResult(models.Model):
     )
 
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="사용자", null=True)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="사용자", null=True
+    )
     request_type = models.CharField(
         max_length=30, choices=REQUEST_TYPE_CHOICES, verbose_name="요청 타입 유형"
     )
@@ -132,7 +134,9 @@ class AIUserHealthRequest(models.Model):
     )
 
     id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="사용자", null=True)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, verbose_name="사용자", null=True
+    )
     request_type = models.CharField(
         max_length=30, choices=REQUEST_TYPE_CHOICES, verbose_name="요청 타입 유형"
     )
