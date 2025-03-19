@@ -168,12 +168,12 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = UserChangePasswordSerializer(
             data=request.data,
-            instance=request.user,  # ✅ 기존 유저 객체 전달
-            context={"request": request},  # ✅ 세션 s업데이트 위해 request 추가
+            instance=request.user,  # 기존 유저 객체 전달
+            context={"request": request},  # 세션 업데이트 위해 request 추가
         )
 
         if serializer.is_valid():
-            serializer.save()  # ✅ `update()` 메서드 호출됨
+            serializer.save()  # `update()` 메서드 호출됨
             return Response(
                 {"message": "비밀번호가 성공적으로 변경되었습니다."},
                 status=status.HTTP_200_OK,
