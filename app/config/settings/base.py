@@ -106,7 +106,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # 실행 환경에 따라 DB 설정을 다르게 적용
 DB_HOST = (
-    os.getenv("RDS_HOSTNAME")
+    os.getenv("RDS_HOST")
     if os.getenv("DOCKER_ENV", "false").lower() == "true"
     else "localhost"
 )
