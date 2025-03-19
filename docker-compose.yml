@@ -13,8 +13,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy  # Redis가 실행될 때까지 대기
-      db:
-        condition: service_healthy  # DB도 실행될 때까지 대기
     volumes:
       - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
       - static_volume:/Main-pj-AI-Service/app/static
@@ -53,29 +51,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-
-  db:  # PostgreSQL 추가
-    image: postgres:13
-    container_name: postgres_db
-    restart: always
-    ports:
-      - "5432:5432"
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - backend
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d aiservice" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
 networks:
   backend:

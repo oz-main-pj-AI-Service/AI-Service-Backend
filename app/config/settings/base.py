@@ -105,7 +105,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # 실행 환경에 따라 DB 설정을 다르게 적용
-DB_HOST = "db" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "localhost"
+DB_HOST = (
+    os.getenv("RDS_HOSTNAME")
+    if os.getenv("DOCKER_ENV", "false").lower() == "true"
+    else "localhost"
+)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
