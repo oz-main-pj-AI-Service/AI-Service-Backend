@@ -44,7 +44,7 @@ class UserRegisterView(APIView):
             verify_url = f"http://{domain}/api/user/verify-email?token={token}"
             send_mail(
                 "이메일 인증을 완료해 주세요",
-                f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
+                f"다음 링크를 클릭, 이메일 인증을 완료해주세요: {verify_url}",
                 settings.EMAIL_HOST_USER,
                 [user.email],
                 fail_silently=False,

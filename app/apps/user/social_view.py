@@ -27,7 +27,7 @@ User = get_user_model()
 class GoogleSocialLoginCallbackView(APIView):
 
     def get(self, request):
-        code = request.GET.get("code")  # 구글이 보내는 인가 코드
+        code = request.GET.get("code")  # 구글이 주는 인가 코드
         if not code:
             return Response({"error": "Authorization code is missing"}, status=400)
         domain = (
