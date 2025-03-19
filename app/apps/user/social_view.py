@@ -156,3 +156,5 @@ class NaverSocialLoginCallbackView(APIView):
         user = User.objects.filter(email=email).first()
 
         return check_user_create_or_login(user, email)
+
+
