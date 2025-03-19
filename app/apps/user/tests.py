@@ -35,7 +35,7 @@ User = get_user_model()
 class SocialLoginTest(TestCase):
     def setUp(self):
         self.client = Client()
-        self.google_login_url = reverse("user:google-login")
+        # self.google_login_url = reverse("user:google-login")
         self.google_callback_url = reverse("user:google-login-callback")
 
     def test_existing_user_login(self):

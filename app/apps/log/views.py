@@ -1,17 +1,13 @@
 import django.dispatch
 from apps.log.models import ActivityLog
 from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.shortcuts import render
 from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken
 
 User = get_user_model()
 
