@@ -1,7 +1,4 @@
-from apps.user.social_view import (
-    GoogleSocialLoginCallbackView,
-    NaverSocialLoginCallbackView,
-)
+from apps.user.social_view import GoogleSocialLoginCallbackView, GoogleSocialLoginView
 from apps.user.views import (
     AdminUserListView,
     AdminUserUpdateView,
@@ -25,16 +22,16 @@ urlpatterns = [
     path("profile/change-pw/", ChangePasswordView.as_view(), name="change-pw"),
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     # 소셜로그인
-    # path("social-login/google/", GoogleSocialLoginView.as_view(), name="google-login"),
+    path("social-login/google/", GoogleSocialLoginView.as_view(), name="google-login"),
     path(
         "social-login/google/callback/",
         GoogleSocialLoginCallbackView.as_view(),
         name="google-login-callback",
     ),
-    # path("social-login/naver/", NaverSocialLoginView.as_view(), name="naver-login"),
+    path("social-login/naver/", GoogleSocialLoginView.as_view(), name="naver-login"),
     path(
         "social-login/naver/callback/",
-        NaverSocialLoginCallbackView.as_view(),
+        GoogleSocialLoginCallbackView.as_view(),
         name="naver-login-callback",
     ),
     # 비밀번호 찾기

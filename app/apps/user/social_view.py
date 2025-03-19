@@ -1,5 +1,3 @@
-import os
-
 import requests
 from apps.user.serializers import SocialUserCreateSerializer
 from apps.utils.jwt_cache import store_access_token
@@ -15,29 +13,22 @@ from rest_framework_simplejwt.tokens import RefreshToken
 User = get_user_model()
 
 
-# class GoogleSocialLoginView(APIView):
-#     def get(self, request):
-#         client_id = settings.GOOGLE_CLIENT_ID
-#         redirect_uri = "http://127.0.0.1:8000/api/user/social-login/google/callback/"
-#         scope = "email"
-#         url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
-#         return redirect(url)
+class GoogleSocialLoginView(APIView):
+    def get(self, request):
+        client_id = settings.GOOGLE_CLIENT_ID
+        redirect_uri = "http://127.0.0.1:8000/api/user/social-login/google/callback/"
+        scope = "email"
+        url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}"
+        return redirect(url)
 
 
 class GoogleSocialLoginCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get("code")  # 구글이 보내는 인가 코드
-        if not code:
-            return Response({"error": "Authorization code is missing"}, status=400)
-        domain = (
-            os.getenv("DOMAIN")
-            if os.getenv("DOCKER_ENV", "false").lower() == "true"
-            else "127.0.0.1:8000"
-        )
         client_id = settings.GOOGLE_CLIENT_ID
         client_secret = settings.GOOGLE_CLIENT_SECRET
-        redirect_uri = f"http://{domain}/api/user/social-login/google/callback/"
+        redirect_uri = "http://127.0.0.1:8000/api/user/social-login/google/callback/"
 
         # 토큰 교환
         token_url = "https://oauth2.googleapis.com/token"
@@ -108,30 +99,23 @@ class GoogleSocialLoginCallbackView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# class NaverSocialLoginView(APIView):
-#     def get(self, request):
-#         client_id = settings.NAVER_CLIENT_ID
-#         redirect_uri = "http://127.0.0.1:8000/api/user/social-login/naver/callback/"
-#         scope = "email"
-#         state = "random_state"  # CSRF 보호를 위해 랜덤 상태 토큰 생성
-#         url = f"https://nid.naver.com/oauth2.0/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}&state={state}"
-#         return redirect(url)
+class NaverSocialLoginView(APIView):
+    def get(self, request):
+        client_id = settings.NAVER_CLIENT_ID
+        redirect_uri = "http://127.0.0.1:8000/api/user/social-login/naver/callback/"
+        scope = "email"
+        state = "random_state"  # CSRF 보호를 위해 랜덤 상태 토큰 생성
+        url = f"https://nid.naver.com/oauth2.0/authorize?client_id={client_id}&redirect_uri={redirect_uri}&response_type=code&scope={scope}&state={state}"
+        return redirect(url)
 
 
 class NaverSocialLoginCallbackView(APIView):
     def get(self, request):
         code = request.GET.get("code")  # 네이버가 보내는 인가 코드
-        if not code:
-            return Response({"error": "Authorization code is missing"}, status=400)
         state = request.GET.get("state")  # CSRF 보호를 위해 상태 토큰 확인
         client_id = settings.NAVER_CLIENT_ID
         client_secret = settings.NAVER_CLIENT_SECRET
-        domain = (
-            os.getenv("DOMAIN")
-            if os.getenv("DOCKER_ENV", "false").lower() == "true"
-            else "127.0.0.1:8000"
-        )
-        redirect_uri = f"http://{domain}/api/user/social-login/naver/callback/"
+        redirect_uri = "http://127.0.0.1:8000/api/user/social-login/naver/callback/"
 
         # 토큰 교환
         token_url = "https://nid.naver.com/oauth2.0/token"
