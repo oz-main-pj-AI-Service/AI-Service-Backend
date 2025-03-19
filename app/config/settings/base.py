@@ -59,7 +59,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "django_extensions",
-    "corsheaders"
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
@@ -78,7 +78,7 @@ ROOT_URLCONF = "config.urls.urls"
 CORS_ALLOWED_ORIGINS = [
     "http://43.201.146.129",
     "http://localhost:5173",
-    "https://d2kcow20xqy4dv.cloudfront.net/",
+    "https://d2kcow20xqy4dv.cloudfront.net",
 ]
 
 TEMPLATES = [
