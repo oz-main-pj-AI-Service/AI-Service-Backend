@@ -1,11 +1,12 @@
 import os
-import urllib.parse
 
 import requests
 from apps.user.serializers import SocialUserCreateSerializer
 from apps.utils.jwt_cache import store_access_token
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.shortcuts import redirect
+from django.urls.base import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -72,40 +73,29 @@ class GoogleSocialLoginCallbackView(APIView):
 
     def post(self, request):
         code = request.data.get("code")  # 구글이 주는 인가 코드
-        code = urllib.parse.unquote(code)
         if not code:
             return Response({"error": "Authorization code is missing"}, status=400)
+
+        client_id = settings.GOOGLE_CLIENT_ID
+        client_secret = settings.GOOGLE_CLIENT_SECRET
+
         # 토큰 교환
-        domain = (
-            os.getenv("DOMAIN")
-            if os.getenv("DOCKER_ENV", "false").lower() == "true"
-            else "127.0.0.1:8000"
-        )
         token_url = "https://oauth2.googleapis.com/token"
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "grant_type": "authorization_code",
             "code": code,
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": f"https://{domain}/api/user/social-login/google/callback/",
+            "client_id": client_id,
+            "client_secret": client_secret,
         }
 
         response = requests.post(token_url, headers=headers, data=data)
-        if not response.ok:
-            return Response({"error": "google_token_invalid"}, status=400)
 
         access_token = response.json().get("access_token")
-
         user_info_url = "https://openidconnect.googleapis.com/v1/userinfo"
         headers = {"Authorization": f"Bearer {access_token}"}
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
-        print(user_info)
-        if not user_info.get("email"):
-            return Response(
-                {"error": "invalid_request", "error_description": "Invalid Credentials"}
-            )
 
         email = user_info.get("email")
 
@@ -141,7 +131,8 @@ class NaverSocialLoginCallbackView(APIView):
             "client_id": settings.NAVER_CLIENT_ID,
             "client_secret": settings.NAVER_CLIENT_SECRET,
         }
-
+        print(settings.NAVER_CLIENT_ID)
+        print(settings.NAVER_CLIENT_SECRET)
         response = requests.post(token_url, headers=headers, data=data)
 
         access_token = response.json().get("access_token")
