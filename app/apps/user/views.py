@@ -1,3 +1,5 @@
+import os
+
 import jwt
 from apps.user.serializers import (
     UserChangePasswordSerializer,
@@ -33,12 +35,16 @@ class UserRegisterView(APIView):
             user = serializer.save()
             user.save()
             id = str(user.id)
+            domain = (
+                os.getenv("DOMAIN")
+                if os.getenv("DOCKER_ENV", "false").lower() == "true"
+                else "127.0.0.1:8000"
+            )
             token = jwt.encode({"user_id": id}, settings.SECRET_KEY, algorithm="HS256")
-
-            verify_url = f"http://127.0.0.1:8000/api/user/verify-email?token={token}"
+            verify_url = f"https://{domain}/api/user/verify-email?token={token}"
             send_mail(
                 "이메일 인증을 완료해 주세요",
-                f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
+                f"다음 링크를 클릭, 이메일 인증을 완료해주세요: {verify_url}",
                 settings.EMAIL_HOST_USER,
                 [user.email],
                 fail_silently=False,
@@ -162,12 +168,12 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = UserChangePasswordSerializer(
             data=request.data,
-            instance=request.user,  # ✅ 기존 유저 객체 전달
-            context={"request": request},  # ✅ 세션 s업데이트 위해 request 추가
+            instance=request.user,  # 기존 유저 객체 전달
+            context={"request": request},  # 세션 업데이트 위해 request 추가
         )
 
         if serializer.is_valid():
-            serializer.save()  # ✅ `update()` 메서드 호출됨
+            serializer.save()  # `update()` 메서드 호출됨
             return Response(
                 {"message": "비밀번호가 성공적으로 변경되었습니다."},
                 status=status.HTTP_200_OK,

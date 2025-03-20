@@ -59,9 +59,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "django_extensions",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -72,6 +74,12 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls.urls"
+
+CORS_ALLOWED_ORIGINS = [
+    "https://hansang.o-r.kr",
+    "http://localhost:5173",
+    "https://d2kcow20xqy4dv.cloudfront.net",
+]
 
 TEMPLATES = [
     {
@@ -97,7 +105,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 
 # 실행 환경에 따라 DB 설정을 다르게 적용
-DB_HOST = "db" if os.getenv("DOCKER_ENV", "false").lower() == "true" else "localhost"
+DB_HOST = (
+    os.getenv("RDS_HOST")
+    if os.getenv("DOCKER_ENV", "false").lower() == "true"
+    else "localhost"
+)
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -159,7 +171,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 
 if os.getenv("DOCKER_ENV", "false").lower() == "true":
-    REDIS_HOST = os.getenv("REDIS_HOST")
+    REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # 기본값 'redis'
 else:
     REDIS_HOST = "localhost"
 

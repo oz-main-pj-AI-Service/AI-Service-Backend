@@ -1,0 +1,29 @@
+name: Deploy to EC2 with Docker
+
+on:
+  push:
+    branches:
+      - release  # main 브랜치에 push하면 자동 배포
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/AI-Service-Backend
+            git pull origin release
+            docker-compose down
+            docker-compose up --build -d
+            
+
+            
