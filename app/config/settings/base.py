@@ -76,7 +76,7 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls.urls"
 
 CORS_ALLOWED_ORIGINS = [
-    "http://43.201.146.129",
+    "https://hansang.o-r.kr",
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
 ]
