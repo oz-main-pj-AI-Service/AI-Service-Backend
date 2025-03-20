@@ -78,6 +78,7 @@ class GoogleSocialLoginCallbackView(APIView):
 
         client_id = settings.GOOGLE_CLIENT_ID
         client_secret = settings.GOOGLE_CLIENT_SECRET
+        redirect_uri = "https://hansang.o-r.kr/api/user/social-login/google/callback/"
 
         # 토큰 교환
         token_url = "https://oauth2.googleapis.com/token"
@@ -87,6 +88,7 @@ class GoogleSocialLoginCallbackView(APIView):
             "code": code,
             "client_id": client_id,
             "client_secret": client_secret,
+            "redirect_uri": redirect_uri,
         }
 
         response = requests.post(token_url, headers=headers, data=data)
