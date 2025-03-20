@@ -115,6 +115,9 @@ class GoogleSocialLoginCallbackView(APIView):
 
 
 class NaverSocialLoginCallbackView(APIView):
+    def get(self, request):
+        return Response({"error": "Method Not Allowed"}, status=405)
+
     def post(self, request):
         code = request.data.get("code")  # 네이버가 보내는 인가 코드
         if not code:
