@@ -79,6 +79,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://hansang.o-r.kr",
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
+    "https://dev.hansang.o-r.kr",
 ]
 
 TEMPLATES = [
