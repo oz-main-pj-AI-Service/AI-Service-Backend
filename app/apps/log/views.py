@@ -1,18 +1,13 @@
-import django.dispatch
 from apps.log.models import ActivityLog
 from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
+from apps.utils.signals import activity_logged
 from django.contrib.auth import get_user_model
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 User = get_user_model()
-
-# 사용자 커스텀 시그널 정의
-activity_logged = django.dispatch.Signal()
 
 
 # 페이지 네이션 설정(10개로 해놨는데 필요에 따라 수정 가능)
@@ -86,7 +81,7 @@ class LogListCreateView(ListCreateAPIView):
 
         # 로그 생성
         log = serializer.save(
-            ip_address=self.get_client_ip(request),
+            ip_address=get_client_ip(request),  # 공통 유틸리티 함수 사용
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
             user_id=request.user if request.user.is_authenticated else None,
         )
@@ -103,15 +98,6 @@ class LogListCreateView(ListCreateAPIView):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
-
-    # 주소 획득 메서드
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(",")[0]
-        else:
-            ip = request.META.get("REMOTE_ADDR")
-        return ip
 
 
 # 특정 로그 조회 API
@@ -130,51 +116,3 @@ class LogRetrieveAPIView(RetrieveAPIView):
             queryset = queryset.filter(user_id=self.request.user.id)
 
         return queryset
-
-
-# 시그널 리시버 - 사용자 생성 시 로그 자동 기록
-@receiver(post_save, sender=User)
-def log_user_creation(sender, instance, created, **kwargs):
-    if created:
-        ActivityLog.objects.create(
-            user_id=instance,
-            action=ActivityLog.ActionType.UPDATE_PROFILE,
-            ip_address="0.0.0.0",  # 시스템 액션으로 기본값 설정
-            user_agent="System",
-            details={"message": "사용자 계정 생성"},
-        )
-
-
-# 인증 관련 시그널 리시버
-@receiver(activity_logged)
-def handle_activity_log(sender, user, action, log_instance, **kwargs):
-    """로그 생성 후 추가 작업이 필요한 경우 처리"""
-    if action == ActivityLog.ActionType.LOGIN:
-        if user.is_authenticated:
-            # 로그인 시도 횟수 리셋
-            user.login_attempts = 0
-            user.save(update_fields=["login_attempts"])
-
-
-# JWT 토큰 사용을 위한 로그인 로그 시그널 연결
-@receiver(activity_logged)
-def create_login_log(sender, user, action, log_instance, **kwargs):
-    """JWT 토큰 사용 시 로그인 로그 생성"""
-    # 로그인 시 처리할 수 있는 추가 작업
-    pass
-
-
-# 사용자 이메일 인증 완료 로그 생성
-@receiver(post_save, sender=User)
-def log_email_verification(sender, instance, created, **kwargs):
-    if not created and instance.email_verified:
-        # 이미 존재하는 사용자의 email_verified 필드가 변경되었을 때만 실행
-        # created=False는 객체가 업데이트된 경우
-        # 이전 상태를 확인할 방법이 없으므로, 인증 완료된 경우에만 로그 생성
-        ActivityLog.objects.create(
-            user_id=instance,
-            action=ActivityLog.ActionType.UPDATE_PROFILE,
-            ip_address="0.0.0.0",
-            user_agent="System",
-            details={"message": "이메일 인증 완료"},
-        )

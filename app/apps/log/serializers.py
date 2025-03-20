@@ -73,7 +73,7 @@ class UserActivityLogSerializer(serializers.ModelSerializer):
 
         if last_login_log:
             return {
-                "timestamp": last_login_log.created_at,
+                "timestamp": last_login_log.created_at.isoformat(),
                 "ip_address": last_login_log.ip_address,
             }
         return None

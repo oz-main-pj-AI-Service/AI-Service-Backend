@@ -19,7 +19,10 @@ class ActivityLog(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="사용자 ID(NULL가능)",
+        help_text="사용자 ID",
+    )
+    user_agent = models.TextField(
+        null=True, blank=True, help_text="사용자 에이전트 정보"
     )
     action = models.CharField(
         max_length=255, choices=ActionType.choices, help_text="로그액션"
@@ -31,6 +34,7 @@ class ActivityLog(models.Model):
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
     class Meta:
+        db_table = 'activity_log' # 테스트때문에 테이블 이름 명시해놓는겁니다 테스트 끝나면 지우면 됩니다
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),
