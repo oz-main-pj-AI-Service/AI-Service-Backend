@@ -88,7 +88,7 @@ class GoogleSocialLoginCallbackView(APIView):
             "code": code,
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": f"http://{domain}/api/user/social-login/google/callback/",
+            "redirect_uri": f"https://{domain}/api/user/social-login/google/callback/",
         }
 
         response = requests.post(token_url, headers=headers, data=data)
