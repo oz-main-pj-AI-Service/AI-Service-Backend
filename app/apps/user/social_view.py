@@ -1,12 +1,11 @@
 import os
+import urllib.parse
 
 import requests
 from apps.user.serializers import SocialUserCreateSerializer
 from apps.utils.jwt_cache import store_access_token
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.shortcuts import redirect
-from django.urls.base import reverse
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -73,6 +72,7 @@ class GoogleSocialLoginCallbackView(APIView):
 
     def post(self, request):
         code = request.data.get("code")  # 구글이 주는 인가 코드
+        code = urllib.parse.unquote(code)
         if not code:
             return Response({"error": "Authorization code is missing"}, status=400)
 
