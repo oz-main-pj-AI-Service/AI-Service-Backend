@@ -27,12 +27,10 @@ class ActivityLog(models.Model):
     ip_address = models.GenericIPAddressField(
         protocol="both", unpack_ipv4=True, help_text="사용자 IP"
     )
-    user_agent = models.TextField(help_text="사용자 브라우저 정보")
     created_at = models.DateTimeField(auto_now_add=True, help_text="생성일")
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
     class Meta:
-        db_table = "activity_log"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),
