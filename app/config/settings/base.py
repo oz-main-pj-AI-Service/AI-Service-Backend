@@ -50,10 +50,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # OWN APP
-    "apps.ai",
+    "apps.user",
     "apps.log",
     "apps.report",
-    "apps.user",
+    "apps.ai",
     # THIRD PARTY
     "drf_yasg",
     "rest_framework",
