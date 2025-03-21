@@ -36,7 +36,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -81,6 +81,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://d2kcow20xqy4dv.cloudfront.net",
     "https://dev.hansang.o-r.kr",
     "https://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",
+    "http://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",  # HTTP 버전 추가
     "https://nid.naver.com",
     "https://accounts.google.com",
 ]
@@ -100,7 +101,7 @@ CORS_ALLOW_HEADERS = [
 
 # ALB에서 HTTPS를 처리할 경우, Django가 HTTPS 요청을 인식하도록 설정
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
 # 모든 HTTP 요청을 HTTPS로 리디렉트 (HTTPS 강제)
 SECURE_SSL_REDIRECT = False
 USE_X_FORWARDED_HOST = True
@@ -187,6 +188,8 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+APPEND_SLASH = False
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
