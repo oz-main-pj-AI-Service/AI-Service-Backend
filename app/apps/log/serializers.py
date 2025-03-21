@@ -23,7 +23,15 @@ class ActivityLogSerializer(serializers.ModelSerializer):
             "details",
         )
 
-        read_only_fields = fields
+        read_only_fields = (
+            "id",
+            "user_id",
+            "created_at",
+            "user_agent",
+            "action",
+            "ip_address",
+            "details",
+        )
 
     def get_username(self, obj):
         if obj.user_id:
