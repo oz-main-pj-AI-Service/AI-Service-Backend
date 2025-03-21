@@ -11,5 +11,5 @@ urlpatterns = [
     path("api/reports/", include("apps.report.urls")),
     path("api/ai/", include("apps.ai.urls")),
     path("api/logs/", include("apps.log.urls")),
-    path("api/healthz/", health_check),
+    path("api/healthz", health_check),
 ]
