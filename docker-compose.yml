@@ -34,7 +34,7 @@ services:
       - django
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/usr/share/nginx/html/static
+      - static_volume:/Main-pj-AI-Service/app/static
     networks:
       - backend
 
