@@ -81,7 +81,28 @@ CORS_ALLOWED_ORIGINS = [
     "https://d2kcow20xqy4dv.cloudfront.net",
     "https://dev.hansang.o-r.kr",
     "https://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",
+    "https://nid.naver.com",
+    "https://accounts.google.com",
 ]
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# ALB에서 HTTPS를 처리할 경우, Django가 HTTPS 요청을 인식하도록 설정
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# 모든 HTTP 요청을 HTTPS로 리디렉트 (HTTPS 강제)
+SECURE_SSL_REDIRECT = True
 
 TEMPLATES = [
     {
