@@ -13,9 +13,15 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ActivityLog
-        fields = "__all__"
-
-        read_only_fields = fields
+        fields = [
+            "id",
+            "user_id",
+            "username",
+            "action",
+            "action_display",
+            "details",
+            "created_at",
+        ]
 
     def get_username(self, obj):
         if obj.user_id:
