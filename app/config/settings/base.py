@@ -79,6 +79,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://hansang.o-r.kr",
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
+    "https://dev.hansang.o-r.kr",
 ]
 
 TEMPLATES = [
@@ -215,5 +216,6 @@ EMAIL_HOST_PASSWORD = os.getenv("NAVER_PASSWORD")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
