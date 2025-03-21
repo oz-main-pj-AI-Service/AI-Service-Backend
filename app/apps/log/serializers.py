@@ -13,7 +13,15 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ActivityLog
-        fields = "__all__"
+        fields = (
+            "id",
+            "user_id",
+            "created_at",
+            "user_agent",
+            "action",
+            "ip_address",
+            "details",
+        )
 
         read_only_fields = fields
 
