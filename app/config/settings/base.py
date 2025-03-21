@@ -76,12 +76,11 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls.urls"
 
 CORS_ALLOWED_ORIGINS = [
-    "https://hansang.o-r.kr",
+    "https://hansang.ai.kr",
+    "https://api.hansang.ai.kr",
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
-    "https://dev.hansang.o-r.kr",
-    "https://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",
-    "http://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",  # HTTP 버전 추가
+    "https://dev.hansang.ai.kr",
     "https://nid.naver.com",
     "https://accounts.google.com",
 ]
