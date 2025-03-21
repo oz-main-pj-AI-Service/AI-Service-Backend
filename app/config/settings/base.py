@@ -80,6 +80,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
     "https://dev.hansang.o-r.kr",
+    "https://oz-main-alb-974359063.ap-northeast-2.elb.amazonaws.com",
 ]
 
 TEMPLATES = [
