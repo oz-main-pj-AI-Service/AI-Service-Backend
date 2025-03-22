@@ -103,8 +103,8 @@ class UserRegisterView(APIView):
 
 
 class VerifyEmailView(APIView):
-    def get(self, request):
-        token = request.GET.get("token")
+    def post(self, request):
+        token = request.data.get("token")
 
         if not token:
             return Response(
