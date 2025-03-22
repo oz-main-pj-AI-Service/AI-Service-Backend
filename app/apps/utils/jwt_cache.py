@@ -14,9 +14,19 @@ def store_access_token(user_id, access_token, expires_in):
     redis_client.setex(f"user:{user_id}:access_token", expires_in, access_token)
 
 
+def store_refresh_token(user_id, refresh_token, expires_in):
+    """Redis에 Refresh Token 저장"""
+    redis_client.setex(f"user:{user_id}:refresh_token", expires_in, refresh_token)
+
+
 def get_access_token(user_id):
     """Redis에서 Access Token 가져오기"""
     return redis_client.get(f"user:{user_id}:access_token")
+
+
+def get_refresh_token(user_id):
+    """Redis에서 Refresh Token 가져오기"""
+    return redis_client.get(f"user:{user_id}:refresh_token")
 
 
 def delete_access_token(user_id):

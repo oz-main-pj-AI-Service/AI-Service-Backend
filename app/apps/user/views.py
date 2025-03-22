@@ -1,3 +1,5 @@
+import os
+
 import jwt
 from apps.user.serializers import (
     UserChangePasswordSerializer,
@@ -20,10 +22,53 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ..utils.jwt_blacklist import add_to_blacklist
-from ..utils.jwt_cache import store_access_token
+from ..utils.jwt_blacklist import add_to_blacklist, is_blacklisted
+from ..utils.jwt_cache import get_refresh_token, store_access_token, store_refresh_token
 
 User = get_user_model()
+
+
+class RefreshTokenView(APIView):
+    def post(self, request):
+        refresh_token = request.data.get("refresh_token")
+        if not refresh_token:
+            return Response(
+                {"error": ":Refresh Token is missing"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            # Refresh Token 검증
+            refresh = RefreshToken(refresh_token)
+
+            if is_blacklisted(str(refresh.access_token)):
+                return Response(
+                    {"error": "Token is blacklisted"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user_id = refresh["user_id"]
+
+            stored_refresh_token = get_refresh_token(user_id)
+            if stored_refresh_token != refresh_token:
+                return Response(
+                    {"error": "Token is invalid"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # 확인 끝 새로운 access token 발급
+            new_access_token = str(refresh.access_token)
+            store_access_token(user_id, new_access_token, 3600)
+            return Response(
+                {
+                    "access_token": new_access_token,
+                    "token_type": "bearer",
+                    "expires_in": 3600,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return Response(
+                {"error": "Invalid Refresh Token", "message": str(e)},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
 
 class UserRegisterView(APIView):
@@ -33,12 +78,18 @@ class UserRegisterView(APIView):
             user = serializer.save()
             user.save()
             id = str(user.id)
-            token = jwt.encode({"user_id": id}, settings.SECRET_KEY, algorithm="HS256")
+            if os.getenv("DOCKER_ENV", "false").lower() == "true":
+                domain = os.getenv("DOMAIN")
+                scheme = "https"
+            else:
+                domain = "127.0.0.1:8000"
+                scheme = "http"
 
-            verify_url = f"http://127.0.0.1:8000/api/user/verify-email?token={token}"
+            token = jwt.encode({"user_id": id}, settings.SECRET_KEY, algorithm="HS256")
+            verify_url = f"{scheme}://{domain}/api/user/verify-email/?token={token}"
             send_mail(
                 "이메일 인증을 완료해 주세요",
-                f"다음 링크를 클릭하여 이메일 인증을 완료해주세요: {verify_url}",
+                f"다음 링크를 클릭, 이메일 인증을 완료해주세요: {verify_url}",
                 settings.EMAIL_HOST_USER,
                 [user.email],
                 fail_silently=False,
@@ -52,8 +103,8 @@ class UserRegisterView(APIView):
 
 
 class VerifyEmailView(APIView):
-    def get(self, request):
-        token = request.GET.get("token")
+    def post(self, request):
+        token = request.data.get("token")
 
         if not token:
             return Response(
@@ -112,6 +163,7 @@ class UserLoginView(APIView):
         access_token = str(refresh.access_token)
 
         store_access_token(user.id, access_token, 3600)
+        store_refresh_token(user.id, str(refresh), 86400)
 
         return Response(
             {
@@ -162,12 +214,12 @@ class ChangePasswordView(APIView):
     def post(self, request):
         serializer = UserChangePasswordSerializer(
             data=request.data,
-            instance=request.user,  # ✅ 기존 유저 객체 전달
-            context={"request": request},  # ✅ 세션 s업데이트 위해 request 추가
+            instance=request.user,  # 기존 유저 객체 전달
+            context={"request": request},  # 세션 업데이트 위해 request 추가
         )
 
         if serializer.is_valid():
-            serializer.save()  # ✅ `update()` 메서드 호출됨
+            serializer.save()  # `update()` 메서드 호출됨
             return Response(
                 {"message": "비밀번호가 성공적으로 변경되었습니다."},
                 status=status.HTTP_200_OK,

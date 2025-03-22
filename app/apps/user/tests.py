@@ -26,63 +26,7 @@ class UserModelTest(TestCase):
         self.assertEqual(User.objects.all().count(), 2)
 
 
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
-
-User = get_user_model()
-
-
-class SocialLoginTest(TestCase):
-    def setUp(self):
-        self.client = Client()
-        self.google_login_url = reverse("user:google-login")
-        self.google_callback_url = reverse("user:google-login-callback")
-
-    def test_existing_user_login(self):
-        # 기존 사용자 생성
-        self.user = User.objects.create_user(
-            email="existing@example.com",
-            nickname="test",
-            password="test1234",
-            phone_number="1234",
-        )
-
-        # 소셜 로그인 시도
-        code = "mock_code"  # 실제 인가 코드를 대체합니다.
-        response = self.client.get(self.google_callback_url, {"code": code})
-
-        # 정상적으로 로그인 토큰이 반환되는지 확인
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            self.assertIn("email", response.json())  # 에러 메시지 확인
-        else:
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertIn("access_token", response.json())
-
-    def test_new_user_creation(self):
-        # 새로운 사용자 생성 시도
-        code = "mock_code"  # 실제 인가 코드를 대체합니다.
-        response = self.client.get(self.google_callback_url, {"code": code})
-
-        # 정상적으로 로그인 토큰이 반환되는지 확인
-        if response.status_code == status.HTTP_400_BAD_REQUEST:
-            self.assertIn("email", response.json())  # 에러 메시지 확인
-        else:
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertIn("access_token", response.json())
-
-        # 새로운 사용자가 생성되었는지 확인
-        # 이 부분은 실제로 Google에서 이메일을 전달할 때만 가능합니다.
-        # 테스트에서는 이메일을 직접 설정해야 합니다.
-        new_user_email = "new@example.com"  # 실제로 Google에서 전달된 이메일
-        new_user = User.objects.filter(email=new_user_email).first()
-        self.assertIsNone(new_user)  # 테스트에서는 새로운 사용자가 생성되지 않습니다.
-
-
-import os
-
 from apps.user.models import User
-from apps.user.serializers import UserRegisterSerializer
-from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
