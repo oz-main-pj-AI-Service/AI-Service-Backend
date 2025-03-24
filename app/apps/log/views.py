@@ -80,7 +80,7 @@ class LogListCreateView(ListCreateAPIView):
 
         # 로그 생성
         log = serializer.save(
-            ip_address=self.get_client_ip(request),
+            ip_address=get_client_ip(request),  # 공통 유틸리티 함수 사용
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
             user_id=request.user if request.user.is_authenticated else None,
         )
@@ -89,15 +89,6 @@ class LogListCreateView(ListCreateAPIView):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
-
-    # 주소 획득 메서드
-    def get_client_ip(self, request):
-        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(",")[0]
-        else:
-            ip = request.META.get("REMOTE_ADDR")
-        return ip
 
 
 # 특정 로그 조회 API
@@ -116,3 +107,14 @@ class LogRetrieveAPIView(RetrieveAPIView):
             queryset = queryset.filter(user_id=self.request.user.id)
 
         return queryset
+
+
+# 클라이언트 ip 주소 획득 함수
+def get_client_ip(request):
+    """클라이언트의 IP 주소를 획득하는 유틸리티 함수"""
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[0]
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+    return ip

@@ -2,6 +2,9 @@ import os
 
 import jwt
 from apps.user.serializers import (
+    AccessTokenSerializer,
+    ErrorResponseSerializer,
+    RefreshTokenSerializer,
     UserChangePasswordSerializer,
     UserListSerializer,
     UserProfileSerializer,
@@ -11,6 +14,8 @@ from apps.user.serializers import (
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.mail import send_mail
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.generics import (
     ListAPIView,
@@ -29,11 +34,46 @@ User = get_user_model()
 
 
 class RefreshTokenView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=RefreshTokenSerializer,
+        responses={
+            200: AccessTokenSerializer,
+            400: openapi.Response(
+                description="잘못된 요청",
+                schema=ErrorResponseSerializer,
+                examples={
+                    "missing_token": {
+                        "code": "missing_refresh_token",
+                        "error": "Refresh Token is missing",
+                    },
+                    "token_blacklist": {
+                        "code": "token_blacklist",
+                        "error": "Token Blacklist",
+                    },
+                    "token_invalid": {
+                        "code": "token_invalid",
+                        "error": "Token is invalid",
+                    },
+                },
+            ),
+            403: openapi.Response(
+                description="유효하지 않은 리프레시 토큰",
+                schema=ErrorResponseSerializer,
+                examples={
+                    "invalid_refresh_token": {
+                        "code": "invalid_refresh_token",
+                        "error": "Invalid Refresh Token",
+                    }
+                },
+            ),
+        },
+    )
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
         if not refresh_token:
             return Response(
-                {"error": ":Refresh Token is missing"},
+                {"error": ":Refresh Token is missing", "code": "missing_refresh_token"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
@@ -42,7 +82,7 @@ class RefreshTokenView(APIView):
 
             if is_blacklisted(str(refresh.access_token)):
                 return Response(
-                    {"error": "Token is blacklisted"},
+                    {"error": "Token is blacklisted", "code": "token_blacklist"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             user_id = refresh["user_id"]
@@ -50,7 +90,8 @@ class RefreshTokenView(APIView):
             stored_refresh_token = get_refresh_token(user_id)
             if stored_refresh_token != refresh_token:
                 return Response(
-                    {"error": "Token is invalid"}, status=status.HTTP_400_BAD_REQUEST
+                    {"error": "Token is invalid", "code": "token_invalid"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # 확인 끝 새로운 access token 발급
@@ -66,7 +107,7 @@ class RefreshTokenView(APIView):
             )
         except Exception as e:
             return Response(
-                {"error": "Invalid Refresh Token", "message": str(e)},
+                {"code": "Invalid_Refresh_Token", "message": str(e)},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
