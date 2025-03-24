@@ -10,6 +10,9 @@ class ActivityLog(models.Model):
         LOGOUT = "LOGOUT", "로그아웃"
         UPDATE_PROFILE = "UPDATE_PROFILE", "프로필 업데이트"
         VIEW_REPORT = "VIEW_REPORT", "리포트 조회"
+        CREATE_REPORT = "CREATE_REPORT", "리포트 생성"
+        DELETE_REPORT = "DELETE_REPORT", "리포트 삭제"
+        UPDATE_REPORT = "UPDATE_REPORT", "리포트 수정"
 
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, help_text="로그 ID"
@@ -20,9 +23,6 @@ class ActivityLog(models.Model):
         null=True,
         blank=True,
         help_text="사용자 ID",
-    )
-    user_agent = models.TextField(
-        null=True, blank=True, help_text="사용자 에이전트 정보"
     )
     action = models.CharField(
         max_length=255, choices=ActionType.choices, help_text="로그액션"
