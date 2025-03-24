@@ -1,16 +1,23 @@
 import os
+from ipaddress import ip_address
 
 import jwt
 from apps.user.serializers import (
+    AccessTokenSerializer,
+    RefreshTokenSerializer,
     UserChangePasswordSerializer,
     UserListSerializer,
+    UserLoginSerializer,
     UserProfileSerializer,
     UserRegisterSerializer,
     UserUpdateSerializer,
+    VerifyEmailSerializer,
 )
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.core.mail import send_mail
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.generics import (
     ListAPIView,
@@ -22,18 +29,38 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from ..utils.authentication import IsAuthenticatedJWTAuthentication
 from ..utils.jwt_blacklist import add_to_blacklist, is_blacklisted
 from ..utils.jwt_cache import get_refresh_token, store_access_token, store_refresh_token
+from ..utils.pagination import Pagination
 
 User = get_user_model()
 
 
 class RefreshTokenView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=RefreshTokenSerializer,
+        responses={
+            200: AccessTokenSerializer,
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`missing_refresh_token`: 리프레시 토큰이 없습니다.\n"
+                    "- `code`:`token_blacklist`: 토큰이 블랙리스트에 등록되어 사용 불가합니다.\n"
+                    "- `code`:`token_invalid`: 서버에 저장된 리프레시 토큰과 일치하지 않습니다."
+                ),
+            ),
+            403: openapi.Response(
+                description="- `code`:`Invalid_Refresh_Token`",
+            ),
+        },
+    )
     def post(self, request):
         refresh_token = request.data.get("refresh_token")
         if not refresh_token:
             return Response(
-                {"error": ":Refresh Token is missing"},
+                {"error": ":Refresh Token is missing", "code": "missing_refresh_token"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
@@ -42,7 +69,7 @@ class RefreshTokenView(APIView):
 
             if is_blacklisted(str(refresh.access_token)):
                 return Response(
-                    {"error": "Token is blacklisted"},
+                    {"error": "Token is blacklisted", "code": "token_blacklist"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             user_id = refresh["user_id"]
@@ -50,7 +77,8 @@ class RefreshTokenView(APIView):
             stored_refresh_token = get_refresh_token(user_id)
             if stored_refresh_token != refresh_token:
                 return Response(
-                    {"error": "Token is invalid"}, status=status.HTTP_400_BAD_REQUEST
+                    {"error": "Token is invalid", "code": "token_invalid"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # 확인 끝 새로운 access token 발급
@@ -66,12 +94,33 @@ class RefreshTokenView(APIView):
             )
         except Exception as e:
             return Response(
-                {"error": "Invalid Refresh Token", "message": str(e)},
+                {"code": "Invalid_Refresh_Token", "message": str(e)},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
 
 class UserRegisterView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=UserRegisterSerializer,
+        responses={
+            201: UserRegisterSerializer,
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`password_mismatch` , 비밀번호 불일치.\n"
+                    "- `code`:`password_invalid` , 비밀번호 길이, 문자...\n"
+                    "- `code`:`required_field_missing` , 필수 필드 누락.\n"
+                ),
+            ),
+            409: openapi.Response(
+                description=(
+                    "- `code`:`email_conflict`, 이미 사용중인 이메일\n"
+                    "- `code`:`phone_number_conflict`, 이미 사용중인 핸드폰 번호"
+                )
+            ),
+        },
+    )
     def post(self, request):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -103,19 +152,37 @@ class UserRegisterView(APIView):
 
 
 class VerifyEmailView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=VerifyEmailSerializer,
+        responses={
+            200: VerifyEmailSerializer,
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`no_token` , 토큰이 안옴.\n"
+                    "- `code`:`email_verified` , 이미 인증된 이메일.\n"
+                    "- `code`:`token_expired` , 만료된 토큰.\n"
+                    "- `code`:`invalid_token` , 잘못된 토큰.\n"
+                    "- `code`:`UserDoesNotExist` , 존재하지 않는 유저.\n"
+                ),
+            ),
+        },
+    )
     def post(self, request):
         token = request.data.get("token")
 
         if not token:
             return Response(
-                {"error": "토큰이 없습니다."}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "토큰이 없습니다.", "code": "no_token"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         try:
             decode = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
             user = User.objects.get(id=decode["user_id"])
             if user.email_verified:
                 return Response(
-                    {"message": "이미 인증된 계정입니다."},
+                    {"message": "이미 인증된 계정입니다.", "code": "email_verified"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             user.email_verified = True
@@ -128,20 +195,38 @@ class VerifyEmailView(APIView):
             )
         except jwt.ExpiredSignatureError:
             return Response(
-                {"error": "토큰이 만료되었습니다."}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "토큰이 만료되었습니다.", "code": "token_expired"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except jwt.DecodeError:
             return Response(
-                {"error": "잘못된 토큰입니다."}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "잘못된 토큰입니다.", "code": "invalid_token"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except User.DoesNotExist:
             return Response(
-                {"error": "존재하지 않는 사용자입니다."},
+                {"error": "존재하지 않는 사용자입니다.", "code": "UserDoesNotExist"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
 
 class UserLoginView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=UserLoginSerializer,
+        responses={
+            200: UserLoginSerializer,
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`missmatch` , 이메일 또는 비밀번호 불일치.\n"
+                ),
+            ),
+            403: openapi.Response(
+                description="- `code`:`not_verified`, 인증되지 않은 이메일\n"
+            ),
+        },
+    )
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
@@ -149,13 +234,19 @@ class UserLoginView(APIView):
         user = authenticate(email=email, password=password)
         if not user:
             return Response(
-                {"error": "이메일 또는 비밀번호가 올바르지 않습니다."},
+                {
+                    "error": "이메일 또는 비밀번호가 올바르지 않습니다.",
+                    "code": "missmatch",
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not user.email_verified:
             return Response(
-                {"error": "이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요."},
+                {
+                    "error": "이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.",
+                    "code": "not_verified",
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -177,8 +268,23 @@ class UserLoginView(APIView):
 
 
 class UserLogoutView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:로그아웃 되었습니다.",
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`forbidden`, 관리자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
     def post(self, request):
         """로그아웃 시 Access Token을 블랙리스트에 추가"""
         access_token = request.auth  # 현재 요청에서 JWT 토큰 가져오기
@@ -192,13 +298,68 @@ class UserLogoutView(APIView):
 
 
 class UserProfileView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = UserProfileSerializer
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "조회 성공",
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`forbidden`, 관리자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: UserProfileSerializer,
+            400: openapi.Response(
+                description="- `code`:`only_num`, 핸드폰 숫자만 입력"
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`forbidden`, 관리자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
 
     def get_object(self):
         # 현재 로그인 유저 반환
         return self.request.user
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "user account deactivated",
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`forbidden`, 관리자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
         user.delete()
@@ -209,8 +370,29 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
 
 
 class ChangePasswordView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: UserChangePasswordSerializer,
+            400: openapi.Response(
+                description=(
+                    "- `code`:`password_mismatch`, pass1,pass2 불일치"
+                    "- `code`:`old_password_mismatch`, 현재 비밀번호 불일치"
+                )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`forbidden`, 관리자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
     def post(self, request):
         serializer = UserChangePasswordSerializer(
             data=request.data,
@@ -229,6 +411,15 @@ class ChangePasswordView(APIView):
 
 
 class FindEmail(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "phone_number:string",
+            400: openapi.Response(
+                description="- `code`:`DoesNotExist`, 존재하지 않는 핸드폰 번호"
+            ),
+        },
+    )
     def post(self, request):
         user = User.objects.filter(
             phone_number=request.data.get("phone_number")
@@ -238,17 +429,51 @@ class FindEmail(APIView):
                 {"message": f"your email is {user.email}"}, status=status.HTTP_200_OK
             )
         return Response(
-            {"msg": "존재 하지 않는 핸드폰 번호입니다."},
+            {"error": "존재 하지 않는 핸드폰 번호입니다.", "code": "DoesNotExist"},
             status=status.HTTP_404_NOT_FOUND,
         )
 
 
 class AdminUserListView(ListAPIView):
-    permission_classes = [IsAdminUser]
+    pagination_class = Pagination
+    permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = UserListSerializer
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: openapi.Response(
+                description="유저 리스트 조회 성공",
+                schema=UserListSerializer(many=True),
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description="- `code`:`forbidden`, 관리자가 아닙니다.\n"
+            ),
+        },
+    )
+    def get(self, request):
+        return super().get(request)
 
 
 class AdminUserUpdateView(RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = UserUpdateSerializer
     queryset = User.objects.all()
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: UserUpdateSerializer,
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description="- `code`:`forbidden`, 관리자가 아닙니다.\n"
+            ),
+        },
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)

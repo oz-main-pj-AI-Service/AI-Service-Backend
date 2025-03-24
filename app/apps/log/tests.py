@@ -11,8 +11,8 @@
 # from rest_framework.test import APIClient
 
 # User = get_user_model()
-
-
+#
+#
 # # 시그널 핸들러 직접 정의
 # def create_login_log(sender, user, request, **kwargs):
 #     """사용자 로그인 시 activity log 기록"""
@@ -26,7 +26,6 @@
 #         )
 #     except Exception as e:
 #         print(f"사용자 로그인 로깅 중 오류 발생: {e}")
-
 
 # def create_logout_log(sender, user, request, **kwargs):
 #     """사용자 로그아웃 시 ActivityLog 생성"""
@@ -42,7 +41,6 @@
 #         except Exception as e:
 #             print(f"사용자 로그아웃 로깅 중 오류 발생: {e}")
 
-
 # def create_user_log(sender, instance, created, **kwargs):
 #     """사용자 계정 생성 시 로그 자동 기록"""
 #     if created:
@@ -56,7 +54,6 @@
 #             )
 #         except Exception as e:
 #             print(f"사용자 계정 생성 로깅 중 오류 발생: {e}")
-
 
 # def create_email_verification_log(sender, instance, created, **kwargs):
 #     """이메일 인증 완료 시 로그 생성"""
@@ -73,12 +70,14 @@
 #             print(f"이메일 인증 완료 로깅 중 오류 발생: {e}")
 
 
+
 # @override_settings(SIGNAL_TESTING=True)
 # class ActivityLogSignalTest(TestCase):
 #     """ActivityLog 시그널 기능 테스트"""
 
 #     # 테스트 데이터베이스 처리 방식 변경
 #     multi_db = True
+
 
 #     def setUp(self):
 #         """테스트 데이터 설정"""
@@ -88,9 +87,11 @@
 #         post_save.connect(create_user_log, sender=User)
 #         post_save.connect(create_email_verification_log, sender=User)
 
+
 #         # 각 테스트마다 고유한 이메일 사용
 #         admin_email = f"admin_{uuid.uuid4()}@example.com"
 #         user_email = f"user_{uuid.uuid4()}@example.com"
+
 
 #         # 관리자 사용자 생성
 #         self.admin_user = User.objects.create_superuser(
@@ -123,6 +124,7 @@
 #         # 테스트 시작 시 로그 삭제
 #         ActivityLog.objects.all().delete()
 
+
 #         # IP 주소 모킹
 #         mock_get_client_ip.return_value = "127.0.0.1"
 
@@ -132,6 +134,7 @@
 
 #         # 시그널 직접 발생
 #         user_logged_in.send(sender=User, request=request, user=self.normal_user)
+
 
 #         # 생성된 로그 찾기
 #         log = ActivityLog.objects.filter(
@@ -151,6 +154,7 @@
 #         # 테스트 시작 시 로그 삭제
 #         ActivityLog.objects.all().delete()
 
+
 #         # IP 주소 모킹
 #         mock_get_client_ip.return_value = "127.0.0.1"
 
@@ -160,6 +164,7 @@
 
 #         # 시그널 직접 발생
 #         user_logged_out.send(sender=User, request=request, user=self.normal_user)
+
 
 #         # 생성된 로그 찾기
 #         log = ActivityLog.objects.filter(
@@ -211,9 +216,11 @@
 #             # 속성 추가 시 로그가 생성될 수 있으므로 다시 삭제
 #             ActivityLog.objects.all().delete()
 
+
 #         # 이메일 인증 상태 변경
 #         self.normal_user.email_verified = True
 #         self.normal_user.save()
+
 
 #         # 생성된 로그 찾기
 #         log = ActivityLog.objects.filter(
@@ -249,8 +256,10 @@
 #             details={"message": "일반 사용자 로그인"},
 #         )
 
+
 #         # API 클라이언트로 관리자 인증
 #         self.api_client.force_authenticate(user=self.admin_user)
+
 
 #         # 로그 조회 API 호출 - 실제 URL 패턴 이름으로 변경 필요
 #         try:
@@ -262,19 +271,23 @@
 #                 # 테스트 목적으로 하드코딩된 URL 사용
 #                 url = "/api/logs/"
 
+
 #         response = self.api_client.get(url, format="json")
 
 #         # 응답 확인
 #         self.assertEqual(response.status_code, 200)
+
 
 #         # 모든 사용자의 로그가 포함되어 있는지 확인
 #         data = json.loads(response.content)
 #         results = data.get("results", data)  # 페이지네이션 여부에 따라 다름
 #         user_ids = [log.get("user_id") for log in results]
 
+
 #         # admin_user와 normal_user 모두의 로그가 포함되어 있어야 함
 #         self.assertTrue(str(self.admin_user.id) in user_ids)
 #         self.assertTrue(str(self.normal_user.id) in user_ids)
+
 
 #     def test_user_can_view_only_own_logs(self):
 #         """일반 사용자가 자신의 로그만 볼 수 있는지 테스트"""
@@ -298,8 +311,10 @@
 #             details={"message": "일반 사용자 로그인"},
 #         )
 
+
 #         # API 클라이언트로 일반 사용자 인증
 #         self.api_client.force_authenticate(user=self.normal_user)
+
 
 #         # 로그 조회 API 호출 - 실제 URL 패턴 이름으로 변경 필요
 #         try:
@@ -311,10 +326,12 @@
 #                 # 테스트 목적으로 하드코딩된 URL 사용
 #                 url = "/api/logs/"
 
+
 #         response = self.api_client.get(url, format="json")
 
 #         # 응답 확인
 #         self.assertEqual(response.status_code, 200)
+
 
 #         # 사용자 자신의 로그만 포함되어 있는지 확인
 #         data = json.loads(response.content)
