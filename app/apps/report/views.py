@@ -1,236 +1,255 @@
+from apps.log.models import ActivityLog
+from apps.log.views import get_client_ip
 from apps.report.models import Report
+from apps.report.serializers import (
+    ReportListCreateSerializer,
+    ReportRetrieveSerializer,
+    ReportUpdateSerializer,
+)
+from apps.utils.authentication import IsAuthenticatedJWTAuthentication
+from apps.utils.pagination import Pagination
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveDestroyAPIView,
+    RetrieveUpdateDestroyAPIView,
+    UpdateAPIView,
+)
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 
-class ReportListCreateView(APIView):
+class ReportListCreateView(ListCreateAPIView):
     """리포트 목록 조회 및 생성 API"""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
+    pagination_class = Pagination
+    serializer_class = ReportListCreateSerializer
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:조회 성공",
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`forbidden`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
     def get(self, request):
-        """리포트 목록 조회"""
-        try:
-            # 사용자 권한에 따른 필터링
-            reports = Report.objects.filter(user_id=request.user)
+        """스웨거용 get"""
 
-            # 응답 데이터 생성
-            response_data = [report.to_dict() for report in reports]
-            return Response(response_data, status=status.HTTP_200_OK)
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="VIEW_REPORT",
+            ip_address=get_client_ip(self.request),
+        )
 
-        except Exception as e:
-            # 서버 오류 처리
-            return Response(
-                {"error": "SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return super().get(request)
 
-    def post(self, request):
-        """리포트 생성"""
-        try:
-            # 필수 필드 확인
-            required_fields = ["title", "description", "type"]
-            for field in required_fields:
-                if field not in request.data:
-                    return Response(
-                        {
-                            "error": "MISSING_FIELD",
-                            "message": "필수 필드가 누락되었습니다.",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+    def get_queryset(self):
+        queryset = super().get_queryset()
 
-            # 제목 길이 검증
-            if len(request.data["title"]) > 100:
-                return Response(
-                    {
-                        "error": "TITLE_TOO_LONG",
-                        "message": "제목은 100자 이내로 작성해주세요.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(user_id=self.request.user.id)
+
+        # 필터링
+        status_filter = self.request.query_params.get("status")
+        if status:
+            queryset = queryset.filter(status=status_filter)
+
+        report_type = self.request.query_params.get("type")
+        if report_type:
+            queryset = queryset.filter(report_type=report_type)
+
+        return queryset
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=ReportListCreateSerializer,
+        responses={
+            201: "msg:리포트 생성 완료.",
+            400: openapi.Response(
+                description=(
+                    "프론트 분들이 필수 필드 title, description는 입력하게 만들어놔 주세요\n"
+                    "admin_comnet, admin_id는 생성시에는 만들어지지 않습니다. 넣는 입력칸 안만드셔도 되여\n"
+                    "잘못된 요청 코드 \n"
+                    "- `code`:`title_too_long`, 제목이 100자 이상"
                 )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`forbidden`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
+    def create(self, request, *args, **kwargs):
+        """스웨거용 create"""
+        return super().create(request, *args, **kwargs)
 
-            # 타입 유효성 검증
-            valid_types = [choice[0] for choice in Report.ReportType.choices]
-            if request.data["type"] not in valid_types:
-                return Response(
-                    {
-                        "error": "INVALID_TYPE",
-                        "message": "유효하지 않은 리포트 타입입니다.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # 리포트 생성
-            report = Report(
-                user_id=request.user,
-                title=request.data["title"],
-                description=request.data["description"],
-                type=request.data["type"],
-                status=Report.StatusType.OPEN,
-            )
-            report.save()
-
-            # 응답 데이터 생성
-            return Response(report.to_dict(), status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            # 서버 오류 처리
-            return Response(
-                {"error": "SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    def perform_create(self, serializer):
+        serializer.save(user_id=self.request.user)
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="CREATE_REPORT",
+            ip_address=get_client_ip(self.request),
+            details={
+                "title": self.request.data.get("title"),
+                "description": self.request.data.get("description"),
+            },
+        )
 
 
-class ReportDetailView(APIView):
+class ReportDetailView(RetrieveDestroyAPIView):
     """리포트 상세 조회, 수정, 삭제 API"""
 
-    permission_classes = [IsAuthenticated]
+    serializer_class = ReportRetrieveSerializer
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
-    def get_report(self, id, user):
-        """리포트 조회 및 권한 확인"""
-        report = get_object_or_404(Report, id=id)
-
-        # 사용자가 리포트 소유자인지 확인
-        if report.user_id != user:
-            return None, Response(
-                {"error": "FORBIDDEN", "message": "접근 권한이 없습니다."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        return report, None
-
-    def get(self, request, id):
-        """리포트 상세 조회"""
-        try:
-            report, error_response = self.get_report(id, request.user)
-            if error_response:
-                return error_response
-
-            return Response(report.to_dict(), status=status.HTTP_200_OK)
-
-        except Report.DoesNotExist:
-            return Response(
-                {"error": "NOT_FOUND", "message": "리포트를 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except Exception as e:
-            # 서버 오류 처리
-            return Response(
-                {"error": "SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    def put(self, request, id):
-        """리포트 수정"""
-        try:
-            report, error_response = self.get_report(id, request.user)
-            if error_response:
-                return error_response
-
-            # 상태 확인 - OPEN 상태만 수정 가능
-            if report.status != Report.StatusType.OPEN:
-                return Response(
-                    {
-                        "error": "REPORT_LOCKED",
-                        "message": "이미 처리가 시작된 리포트는 수정할 수 없습니다.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:리포트 조회.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
                 )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="VIEW_REPORT",
+            ip_address=get_client_ip(self.request),
+        )
+        return super().retrieve(request, *args, **kwargs)
 
-            # 필수 필드 확인
-            required_fields = ["title", "description", "type"]
-            for field in required_fields:
-                if field not in request.data:
-                    return Response(
-                        {
-                            "error": "MISSING_FIELD",
-                            "message": "필수 필드가 누락되었습니다.",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            # 제목 길이 검증
-            if len(request.data["title"]) > 100:
-                return Response(
-                    {
-                        "error": "TITLE_TOO_LONG",
-                        "message": "제목은 100자 이내로 작성해주세요.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:리포트 조회.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
                 )
-
-            # 타입 유효성 검증
-            valid_types = [choice[0] for choice in Report.ReportType.choices]
-            if request.data["type"] not in valid_types:
-                return Response(
-                    {
-                        "error": "INVALID_TYPE",
-                        "message": "유효하지 않은 리포트 타입입니다.",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_Admin`, 관리자가 아닙니다.\n"
+                    "- `code`:`not_Author`, 작성자가 아닙니다.\n"
                 )
-
-            # 리포트 업데이트
-            report.title = request.data["title"]
-            report.description = request.data["description"]
-            report.type = request.data["type"]
-
-            # 저장
-            report.save()
-
-            # 응답 데이터 생성
-            response_data = {
-                "id": str(report.id),
-                "title": report.title,
-                "description": report.description,
-                "type": report.type,
-                "updated_at": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
-
-        except Report.DoesNotExist:
-            return Response(
-                {"error": "NOT_FOUND", "message": "리포트를 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except Exception as e:
-            # 서버 오류 처리
-            return Response(
-                {"error": "SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    def delete(self, request, id):
+            ),
+        },
+    )
+    def delete(self, request, *args, **kwargs):
         """리포트 삭제"""
-        try:
-            report, error_response = self.get_report(id, request.user)
-            if error_response:
-                return error_response
+        report = self.get_object()
+        if report.user_id != self.request.user.id:
+            raise PermissionDenied(detail="작성자가 아닙니다.", code="not_Author")
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="DELETE_REPORT",
+            ip_address=get_client_ip(self.request),
+        )
+        return super().delete(request, *args, **kwargs)
 
-            # 리포트 삭제
-            deleted_at = timezone.now()
-            report.delete()
 
-            # 응답 데이터 생성
-            response_data = {
-                "id": str(id),
-                "deleted_at": deleted_at.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            return Response(response_data, status=status.HTTP_200_OK)
+class ReportUpdateView(UpdateAPIView):
+    serializer_class = ReportUpdateSerializer
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
-        except Report.DoesNotExist:
-            return Response(
-                {"error": "NOT_FOUND", "message": "리포트를 찾을 수 없습니다."},
-                status=status.HTTP_404_NOT_FOUND,
+    def get_object(self):
+        response = super().get_object()
+        if not response.user_id == self.request.user.id:
+            raise PermissionDenied(
+                detail="사용자의 리포트가 아닙니다.", code="not_Author"
             )
-        except Exception as e:
-            # 서버 오류 처리
-            return Response(
-                {"error": "SERVER_ERROR", "message": "서버 내부 오류가 발생했습니다."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        return response
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=ReportUpdateSerializer,
+        responses={
+            200: "msg:리포트 조회.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
+                )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="UPDATE_REPORT",
+            ip_address=get_client_ip(self.request),
+            details={
+                "title": self.request.data.get("title"),
+                "description": self.request.data.get("description"),
+            },
+        )
+        return super().update(request, *args, **kwargs)
+
+
+class AdminReportUpdateView(UpdateAPIView):
+    serializer_class = ReportUpdateSerializer
+    permission_classes = [IsAuthenticatedJWTAuthentication]
+
+    def perform_update(self, serializer):
+        if not self.request.user.is_superuser:
+            raise PermissionDenied(detail="관리자가 아닙니다.", code="not_Admin")
+        serializer.save(admin_id=self.request.user.id)
+        ActivityLog.objects.create(
+            user_id=self.request.user.id,
+            action="UPDATE_REPORT",
+            ip_address=get_client_ip(self.request),
+            details={
+                "admin_comment": self.request.data.get("admin_comment"),
+                "admin_id": self.request.user.id,
+            },
+        )
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        request_body=ReportUpdateSerializer,
+        responses={
+            200: "msg:업데이트 성공.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
+                )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
