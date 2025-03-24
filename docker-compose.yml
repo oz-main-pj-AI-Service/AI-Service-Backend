@@ -18,8 +18,7 @@ services:
       - static_volume:/Main-pj-AI-Service/app/static
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
     command: >
-      sh -c "python manage.py makemigrations &&
-             python manage.py migrate &&
+      sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn --workers 4 --bind 0.0.0.0:8000 config.wsgi:application"
     networks:
