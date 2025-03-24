@@ -1,5 +1,6 @@
 from apps.log.models import ActivityLog
 from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
+from apps.utils.pagination import Pagination
 from django.contrib.auth import get_user_model
 from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
@@ -10,10 +11,6 @@ User = get_user_model()
 
 
 # 페이지 네이션 설정(10개로 해놨는데 필요에 따라 수정 가능)
-class LogPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = "page_size"
-    max_page_size = 50
 
 
 # 관리자 또는 자신의 로그만 조회 가능한 권한 설정 (일반 사용자는 자신의 로그만 조회 가능)
@@ -34,7 +31,7 @@ class IsAdminOrSelf(permissions.BasePermission):
 # 활동 로그 조회 및 생성 API
 class LogListCreateView(ListCreateAPIView):
     queryset = ActivityLog.objects.all()
-    pagination_class = LogPagination
+    pagination_class = Pagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["action", "ip_address", "user_agent"]
     ordering_fields = ["created_at", "action"]
