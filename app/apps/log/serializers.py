@@ -1,9 +1,20 @@
 from apps.log.models import ActivityLog
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
+from rest_framework import status
 
 User = get_user_model()
 
+class UnauthorizedError(APIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    default_detail = "인증 실패"
+    default_code = "unauthorized"
+
+class NopermissionError(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "권한 없음"
+    default_code = "forbidden"
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     """로그 조회용 시리얼라이저"""
@@ -41,7 +52,7 @@ class ActivityLogCreateSerializer(serializers.ModelSerializer):
         valid_actions = [choice[0] for choice in ActivityLog.ActionType.choices]
         if value not in valid_actions:
             raise serializers.ValidationError(
-                f"유효하지 않은 액션: {value}. 유효한 액션: {', '.join(valid_actions)}"
+                detail = "입력값 오류", code = "invalid_text"
             )
         return value
 
@@ -74,3 +85,4 @@ class UserActivityLogSerializer(serializers.ModelSerializer):
                 "ip_address": last_login_log.ip_address,
             }
         return None
+

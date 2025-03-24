@@ -5,9 +5,11 @@ from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+from rest_framework.exceptions import PermissionDenied, NotAuthenticated
 
 User = get_user_model()
-
 
 # 페이지 네이션 설정(10개로 해놨는데 필요에 따라 수정 가능)
 class LogPagination(PageNumberPagination):
@@ -18,17 +20,22 @@ class LogPagination(PageNumberPagination):
 
 # 관리자 또는 자신의 로그만 조회 가능한 권한 설정 (일반 사용자는 자신의 로그만 조회 가능)
 class IsAdminOrSelf(permissions.BasePermission):
+
     def has_permission(self, request, view):
+        # 먼저 인증 여부 확인
+        if not request.user.is_authenticated:
+            raise NotAuthenticated(detail="인증 실패", code="unauthorized")
+        
         # 관리자는 모든 접근 허용
         if request.user.is_staff or request.user.is_superuser:
             return True
 
-        # 'admin' URL에 접근하려는 경우, 관리자만 허용
+        # 일반유저가 'admin' URL에 접근하려는 경우, 관리자만 허용
         if "admin" in request.path:
-            return request.user.is_staff or request.user.is_superuser
-
-        # 일반 사용자는 자신의 로그만 볼 수 있음
-        return request.user.is_authenticated and request.user.status == "ACTIVE"
+            raise PermissionDenied(detail="권한 없음", code="forbidden")
+        
+        # 일반 사용자는 상태가 "ACTIVE"인 경우만 허용
+        return request.user.status == "ACTIVE"
 
 
 # 활동 로그 조회 및 생성 API
@@ -40,6 +47,29 @@ class LogListCreateView(ListCreateAPIView):
     ordering_fields = ["created_at", "action"]
     permission_classes = [IsAdminOrSelf]
 
+    @swagger_auto_schema(
+        security=[{'Bearer': []}], # 토큰 인증
+        request_body = ActivityLogSerializer,
+        responses={
+            200: ActivityLogSerializer(many=True),
+            401: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- code:unauthorized 리스트에 접근할 인증이 완료되지 않았습니다."
+                )
+            ),
+            403: openapi.Response(
+                description= (
+                    "잘못된 요청 시 응답\n"
+                    "- code:forbidden 리스트에 접근할 권한이 없습니다."
+                )
+            )
+        }
+    )
+    # GET 요청 처리 = swagger용 (명시적으로 적어놈)
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
     # 시리얼라이저 설정
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -47,6 +77,7 @@ class LogListCreateView(ListCreateAPIView):
         return ActivityLogSerializer
 
     def get_queryset(self):
+        
         queryset = super().get_queryset()
 
         # URL에서 log_id 확인
@@ -73,6 +104,32 @@ class LogListCreateView(ListCreateAPIView):
 
         return queryset
 
+    @swagger_auto_schema(
+        security=[{'Bearer': []}],  # 토큰 인증
+        request_body=ActivityLogCreateSerializer,
+        responses={
+            201: ActivityLogCreateSerializer,
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- code:invalid_text 입력값 오류"
+                )
+            ),
+            401: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- code:unauthorized 리스트에 접근할 인증이 완료되지 않았습니다."
+                )
+            ),
+            403: openapi.Response(
+                description= (
+                    "잘못된 요청 시 응답\n"
+                    "- code:forbidden 리스트에 접근할 권한이 없습니다."
+                    )
+            )
+        }
+    )
+    
     # 로그 생성 API
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -98,6 +155,28 @@ class LogRetrieveAPIView(RetrieveAPIView):
     permission_classes = [IsAdminOrSelf]
     lookup_field = "id"
     lookup_url_kwarg = "log_id"
+
+    @swagger_auto_schema(
+        security=[{'Bearer': []}], # 토큰 인증
+        request_body = ActivityLogSerializer,
+        responses={
+            200: ActivityLogSerializer, # many=True 제거함
+            401: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- code:unauthorized 리스트에 접근할 인증이 완료되지 않았습니다."
+                )
+            ),
+            403: openapi.Response(
+                description= (
+                    "잘못된 요청 시 응답\n"
+                    "- code:forbidden 리스트에 접근할 권한이 없습니다."
+                )
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()
