@@ -1,5 +1,6 @@
 from apps.log.models import ActivityLog
 from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
+from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
 from django.contrib.auth import get_user_model
 from drf_yasg import openapi
@@ -13,29 +14,6 @@ from rest_framework.response import Response
 User = get_user_model()
 
 
-# 페이지 네이션 설정(10개로 해놨는데 필요에 따라 수정 가능)
-
-
-# 관리자 또는 자신의 로그만 조회 가능한 권한 설정 (일반 사용자는 자신의 로그만 조회 가능)
-class IsAdminOrSelf(permissions.BasePermission):
-
-    def has_permission(self, request, view):
-        # 먼저 인증 여부 확인
-        if not request.user.is_authenticated:
-            raise NotAuthenticated(detail="인증 실패", code="unauthorized")
-
-        # 관리자는 모든 접근 허용
-        if request.user.is_staff or request.user.is_superuser:
-            return True
-
-        # 일반유저가 'admin' URL에 접근하려는 경우, 관리자만 허용
-        if "admin" in request.path:
-            raise PermissionDenied(detail="권한 없음", code="forbidden")
-
-        # 일반 사용자는 상태가 "ACTIVE"인 경우만 허용
-        return request.user.status == "ACTIVE"
-
-
 # 활동 로그 조회 및 생성 API
 class LogListCreateView(ListCreateAPIView):
     queryset = ActivityLog.objects.all()
@@ -43,7 +21,7 @@ class LogListCreateView(ListCreateAPIView):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["action", "ip_address", "user_agent"]
     ordering_fields = ["created_at", "action"]
-    permission_classes = [IsAdminOrSelf]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증
@@ -107,7 +85,7 @@ class LogListCreateView(ListCreateAPIView):
 class LogRetrieveAPIView(RetrieveAPIView):
     queryset = ActivityLog.objects.all()
     serializer_class = ActivityLogSerializer
-    permission_classes = [IsAdminOrSelf]
+    permission_classes = [IsAuthenticatedJWTAuthentication]
     lookup_field = "id"
     lookup_url_kwarg = "log_id"
 
