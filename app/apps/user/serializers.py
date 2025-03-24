@@ -12,11 +12,6 @@ redis_client = redis.StrictRedis(
 )
 
 
-class ErrorResponseSerializer(serializers.Serializer):
-    code = serializers.CharField(help_text="에러 키워드 코드 파악용")
-    error = serializers.CharField(help_text="내용")
-
-
 class ConflictException(APIException):
     status_code = status.HTTP_409_CONFLICT
     # default_code = "conflict"
