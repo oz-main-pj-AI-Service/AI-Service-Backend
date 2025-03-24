@@ -105,46 +105,6 @@ class LogListCreateView(ListCreateAPIView):
 
         return queryset
 
-    @swagger_auto_schema(
-        security=[{"Bearer": []}],  # 토큰 인증
-        request_body=ActivityLogCreateSerializer,
-        responses={
-            201: ActivityLogCreateSerializer,
-            400: openapi.Response(
-                description=("잘못된 요청 시 응답\n" "- code:invalid_text 입력값 오류")
-            ),
-            401: openapi.Response(
-                description=(
-                    "잘못된 요청 시 응답\n"
-                    "- code:unauthorized 리스트에 접근할 인증이 완료되지 않았습니다."
-                )
-            ),
-            403: openapi.Response(
-                description=(
-                    "잘못된 요청 시 응답\n"
-                    "- code:forbidden 리스트에 접근할 권한이 없습니다."
-                )
-            ),
-        },
-    )
-
-    # 로그 생성 API
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # 로그 생성
-        log = serializer.save(
-            ip_address=get_client_ip(request),  # 공통 유틸리티 함수 사용
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            user_id=request.user if request.user.is_authenticated else None,
-        )
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
-
 
 # 특정 로그 조회 API
 class LogRetrieveAPIView(RetrieveAPIView):
