@@ -19,7 +19,10 @@ class ActivityLog(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="사용자 ID(NULL가능)",
+        help_text="사용자 ID",
+    )
+    user_agent = models.TextField(
+        null=True, blank=True, help_text="사용자 에이전트 정보"
     )
     action = models.CharField(
         max_length=255, choices=ActionType.choices, help_text="로그액션"
@@ -27,7 +30,6 @@ class ActivityLog(models.Model):
     ip_address = models.GenericIPAddressField(
         protocol="both", unpack_ipv4=True, help_text="사용자 IP"
     )
-    user_agent = models.TextField(help_text="사용자 브라우저 정보")
     created_at = models.DateTimeField(auto_now_add=True, help_text="생성일")
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
