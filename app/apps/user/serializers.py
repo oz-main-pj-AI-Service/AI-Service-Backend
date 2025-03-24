@@ -1,7 +1,8 @@
 import redis
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.exceptions import APIException
 
 # Create your views here.
 
@@ -9,6 +10,26 @@ User = get_user_model()
 redis_client = redis.StrictRedis(
     host="localhost", port=6379, db=0, decode_responses=True
 )
+
+
+class ErrorResponseSerializer(serializers.Serializer):
+    code = serializers.CharField(help_text="에러 키워드 코드 파악용")
+    error = serializers.CharField(help_text="내용")
+
+
+class ConflictException(APIException):
+    status_code = status.HTTP_409_CONFLICT
+    # default_code = "conflict"
+
+
+class RefreshTokenSerializer(serializers.Serializer):
+    refresh_token = serializers.CharField(help_text="리프레시 토큰", required=True)
+
+
+class AccessTokenSerializer(serializers.Serializer):
+    access_token = serializers.CharField(help_text="새로 발급된 엑세스 토큰")
+    token_type = serializers.CharField(help_text="토큰 타입 : Bearer")
+    expires_in = serializers.CharField(help_text="토큰 만료 시간")
 
 
 class SocialUserCreateSerializer(serializers.Serializer):
@@ -53,8 +74,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def validate_email(self, value):
         """이메일 중복 검사"""
         if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(
-                "이미 사용 중인 이메일입니다.", code="conflict"
+            raise ConflictException(
+                detail="이미 사용중인 이메일 입니다.", code="email_conflict"
             )
         return value
 
@@ -67,8 +88,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         if not value.isdigit():
             raise serializers.ValidationError("핸드폰 번호는 숫자만 입력해야 합니다.")
         if User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError(
-                "이미 사용 중인 핸드폰 번호입니다.", code="conflict"
+            raise ConflictException(
+                "이미 사용 중인 핸드폰 번호입니다.", code="phone_number_conflict"
             )
         return value
 
