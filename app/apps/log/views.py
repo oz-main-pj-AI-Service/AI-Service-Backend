@@ -55,7 +55,7 @@ class LogListCreateView(ListCreateAPIView):
             return queryset.filter(id=log_id)
 
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
-        if not (self.request.user.is_staff or self.request.user.is_superuser):
+        if not self.request.user.is_superuser:
             queryset = queryset.filter(user_id=self.request.user.id)
 
         # 필터링 옵션
@@ -83,14 +83,6 @@ class LogListCreateView(ListCreateAPIView):
             ip_address=get_client_ip(request),  # 공통 유틸리티 함수 사용
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
             user_id=request.user if request.user.is_authenticated else None,
-        )
-
-        # 시그널 발생
-        activity_logged.send(
-            sender=self.__class__,
-            user=request.user,
-            action=log.action,
-            log_instance=log,
         )
 
         headers = self.get_success_headers(serializer.data)

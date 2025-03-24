@@ -52,7 +52,6 @@ class Report(models.Model):
 
     # 테이블명, 정렬순서, 인덱스 설정
     class Meta:
-        db_table = "report"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),

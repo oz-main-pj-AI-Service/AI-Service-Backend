@@ -7,6 +7,7 @@ from apps.user.views import (
     AdminUserUpdateView,
     ChangePasswordView,
     FindEmail,
+    RefreshTokenView,
     UserLoginView,
     UserLogoutView,
     UserProfileView,
@@ -20,6 +21,7 @@ app_name = "user"
 urlpatterns = [
     path("register/", UserRegisterView.as_view(), name="register"),
     path("login/", UserLoginView.as_view(), name="login"),
+    path("refresh-token/", RefreshTokenView.as_view(), name="refresh-token"),
     path("logout/", UserLogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="profile"),
     path("profile/change-pw/", ChangePasswordView.as_view(), name="change-pw"),

@@ -36,7 +36,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = os.getenv("DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -76,10 +76,37 @@ MIDDLEWARE = [
 ROOT_URLCONF = "config.urls.urls"
 
 CORS_ALLOWED_ORIGINS = [
-    "https://hansang.o-r.kr",
+    "https://hansang.ai.kr",
+    "https://api.hansang.ai.kr",
     "http://localhost:5173",
     "https://d2kcow20xqy4dv.cloudfront.net",
+    "https://dev.hansang.ai.kr",
+    "https://nid.naver.com",
+    "https://accounts.google.com",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# ALB에서 HTTPS를 처리할 경우, Django가 HTTPS 요청을 인식하도록 설정
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CORS_EXPOSE_HEADERS = ["Content-Type", "X-CSRFToken"]
+# 모든 HTTP 요청을 HTTPS로 리디렉트 (HTTPS 강제)
+SECURE_SSL_REDIRECT = False
+USE_X_FORWARDED_HOST = True
 
 TEMPLATES = [
     {
@@ -164,6 +191,8 @@ STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+APPEND_SLASH = False
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -215,5 +244,6 @@ EMAIL_HOST_PASSWORD = os.getenv("NAVER_PASSWORD")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
