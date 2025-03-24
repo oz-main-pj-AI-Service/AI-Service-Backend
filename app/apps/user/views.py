@@ -3,7 +3,6 @@ import os
 import jwt
 from apps.user.serializers import (
     AccessTokenSerializer,
-    ErrorResponseSerializer,
     RefreshTokenSerializer,
     UserChangePasswordSerializer,
     UserListSerializer,
@@ -41,22 +40,14 @@ class RefreshTokenView(APIView):
             200: AccessTokenSerializer,
             400: openapi.Response(
                 description=(
-                    "잘못된 요청"
-                    "- `code:missing_refresh_token`: 리프레시 토큰이 없습니다.\n"
-                    "- `code:token_blacklist`: 토큰이 블랙리스트에 등록되어 사용 불가합니다.\n"
-                    "- `code:token_invalid`: 서버에 저장된 리프레시 토큰과 일치하지 않습니다."
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`missing_refresh_token`: 리프레시 토큰이 없습니다.\n"
+                    "- `code`:`token_blacklist`: 토큰이 블랙리스트에 등록되어 사용 불가합니다.\n"
+                    "- `code`:`token_invalid`: 서버에 저장된 리프레시 토큰과 일치하지 않습니다."
                 ),
-                schema=ErrorResponseSerializer,
             ),
             403: openapi.Response(
-                description="유효하지 않은 리프레시 토큰",
-                schema=ErrorResponseSerializer,
-                examples={
-                    "invalid_refresh_token": {
-                        "code": "invalid_refresh_token",
-                        "error": "Invalid Refresh Token",
-                    }
-                },
+                description="- `code`:`Invalid_Refresh_Token`",
             ),
         },
     )
