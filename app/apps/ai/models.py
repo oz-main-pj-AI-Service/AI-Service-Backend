@@ -90,7 +90,12 @@ class AIRecipeRequest(models.Model):
     preparation_time = models.IntegerField(verbose_name="준비 시간(분)")
     cooking_time = models.IntegerField(verbose_name="조리 시간(분)")
     serving_size = models.IntegerField(verbose_name="제공 인원")
-    difficulty = choices = Difficulty.choices, verbose_name = "난이도"
+    difficulty = models.CharField(
+        max_length=20,
+        choices=Difficulty.choices,
+        default=Difficulty.EASY,
+        verbose_name="난이도",
+    )
     cuisine_type = models.CharField(
         max_length=50, verbose_name="요리 종류(한식/중식 등)"
     )
