@@ -10,6 +10,9 @@ class ActivityLog(models.Model):
         LOGOUT = "LOGOUT", "로그아웃"
         UPDATE_PROFILE = "UPDATE_PROFILE", "프로필 업데이트"
         VIEW_REPORT = "VIEW_REPORT", "리포트 조회"
+        CREATE_REPORT = "CREATE_REPORT", "리포트 생성"
+        DELETE_REPORT = "DELETE_REPORT", "리포트 삭제"
+        UPDATE_REPORT = "UPDATE_REPORT", "리포트 수정"
 
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, help_text="로그 ID"
@@ -19,7 +22,7 @@ class ActivityLog(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="사용자 ID(NULL가능)",
+        help_text="사용자 ID",
     )
     action = models.CharField(
         max_length=255, choices=ActionType.choices, help_text="로그액션"
@@ -27,12 +30,10 @@ class ActivityLog(models.Model):
     ip_address = models.GenericIPAddressField(
         protocol="both", unpack_ipv4=True, help_text="사용자 IP"
     )
-    user_agent = models.TextField(help_text="사용자 브라우저 정보")
     created_at = models.DateTimeField(auto_now_add=True, help_text="생성일")
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
     class Meta:
-        db_table = "activity_log"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),

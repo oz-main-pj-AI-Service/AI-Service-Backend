@@ -13,15 +13,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy  # Redis가 실행될 때까지 대기
-      db:
-        condition: service_healthy  # DB도 실행될 때까지 대기
     volumes:
       - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
       - static_volume:/Main-pj-AI-Service/app/static
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
     command: >
-      sh -c "python manage.py makemigrations &&
-             python manage.py migrate &&
+      sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn --workers 4 --bind 0.0.0.0:8000 config.wsgi:application"
     networks:
@@ -31,12 +28,15 @@ services:
     image: nginx:latest
     container_name: nginx
     ports:
-      - "80:80"  # Nginx가 80포트에서 요청 수신
+      - "80:80"
+      - "443:443"  # 🔥 HTTPS 열기
     depends_on:
       - django
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - static_volume:/usr/share/nginx/html/static
+      - static_volume:/Main-pj-AI-Service/app/static
+      - /etc/letsencrypt:/etc/letsencrypt  # 🔥 인증서 공유
+      - /var/lib/letsencrypt:/var/lib/letsencrypt
     networks:
       - backend
 
@@ -53,29 +53,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
-
-  db:  # PostgreSQL 추가
-    image: postgres:13
-    container_name: postgres_db
-    restart: always
-    ports:
-      - "5432:5432"
-    env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - ./init-scripts:/docker-entrypoint-initdb.d
-    networks:
-      - backend
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d aiservice" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
 networks:
   backend:
