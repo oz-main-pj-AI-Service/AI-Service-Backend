@@ -6,6 +6,8 @@ from apps.user.serializers import SocialUserCreateSerializer
 from apps.utils.jwt_cache import store_access_token
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +19,10 @@ User = get_user_model()
 def check_user_create_or_login(user, email):
     if user and not user.is_social:  # 일반 로그인 계정이면
         return Response(
-            {"error": "이 이메일은 포털 로그인으로 사용 중입니다."},
+            {
+                "error": "이 이메일은 포털 로그인으로 사용 중입니다.",
+                "code": "already_registered_portal",
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
     if user:
@@ -53,7 +58,7 @@ def check_user_create_or_login(user, email):
                     "token_type": "Bearer",
                     "expires_in": 3600,
                 },
-                status=status.HTTP_200_OK,
+                status=status.HTTP_201_CREATED,
             )
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -70,11 +75,28 @@ def check_user_create_or_login(user, email):
 
 class GoogleSocialLoginCallbackView(APIView):
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "access_token:string",
+            201: "회원가입 성공, access_token:string",
+            400: openapi.Response(
+                description=(
+                    "- `code`:`no_code`, 코드가 안옴"
+                    "- `code`:`old_password_mismatch`, 현재 비밀번호 불일치"
+                    "- `code`:`already_registered_portal`, 포털 사용자 불일치"
+                )
+            ),
+        },
+    )
     def post(self, request):
         code = request.data.get("code")  # 구글이 주는 인가 코드
         code = urllib.parse.unquote(code)
         if not code:
-            return Response({"error": "Authorization code is missing"}, status=400)
+            return Response(
+                {"error": "Authorization code is missing", "code": "no_code"},
+                status=400,
+            )
 
         client_id = settings.GOOGLE_CLIENT_ID
         client_secret = settings.GOOGLE_CLIENT_SECRET
@@ -117,9 +139,21 @@ class GoogleSocialLoginCallbackView(APIView):
 
 
 class NaverSocialLoginCallbackView(APIView):
-    def get(self, request):
-        return Response({"error": "Method Not Allowed"}, status=405)
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "access_token:string",
+            201: "회원가입 성공, access_token:string",
+            400: openapi.Response(
+                description=(
+                    "- `code`:`no_code`, 코드가 안옴"
+                    "- `code`:`old_password_mismatch`, 현재 비밀번호 불일치"
+                    "- `code`:`already_registered_portal`, 포털 사용자 불일치"
+                )
+            ),
+        },
+    )
     def post(self, request):
         code = request.data.get("code")  # 네이버가 보내는 인가 코드
         if not code:
