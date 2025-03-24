@@ -25,7 +25,6 @@ class LogListCreateView(ListCreateAPIView):
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증
-        request_body=ActivityLogSerializer,
         responses={
             200: ActivityLogSerializer(many=True),
             401: openapi.Response(
@@ -91,7 +90,6 @@ class LogRetrieveAPIView(RetrieveAPIView):
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증
-        request_body=ActivityLogSerializer,
         responses={
             200: ActivityLogSerializer,  # many=True 제거함
             401: openapi.Response(
