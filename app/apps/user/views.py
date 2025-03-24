@@ -40,22 +40,13 @@ class RefreshTokenView(APIView):
         responses={
             200: AccessTokenSerializer,
             400: openapi.Response(
-                description="잘못된 요청",
+                description=(
+                    "잘못된 요청"
+                    "- `code:missing_refresh_token`: 리프레시 토큰이 없습니다.\n"
+                    "- `code:token_blacklist`: 토큰이 블랙리스트에 등록되어 사용 불가합니다.\n"
+                    "- `code:token_invalid`: 서버에 저장된 리프레시 토큰과 일치하지 않습니다."
+                ),
                 schema=ErrorResponseSerializer,
-                examples={
-                    "missing_token": {
-                        "code": "missing_refresh_token",
-                        "error": "Refresh Token is missing",
-                    },
-                    "token_blacklist": {
-                        "code": "token_blacklist",
-                        "error": "Token Blacklist",
-                    },
-                    "token_invalid": {
-                        "code": "token_invalid",
-                        "error": "Token is invalid",
-                    },
-                },
             ),
             403: openapi.Response(
                 description="유효하지 않은 리프레시 토큰",
