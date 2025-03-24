@@ -1,6 +1,5 @@
 from apps.log.models import ActivityLog
 from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
-from apps.utils.signals import activity_logged
 from django.contrib.auth import get_user_model
 from rest_framework import filters, permissions, status
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
@@ -116,3 +115,14 @@ class LogRetrieveAPIView(RetrieveAPIView):
             queryset = queryset.filter(user_id=self.request.user.id)
 
         return queryset
+
+
+# 클라이언트 ip 주소 획득 함수
+def get_client_ip(request):
+    """클라이언트의 IP 주소를 획득하는 유틸리티 함수"""
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(",")[0]
+    else:
+        ip = request.META.get("REMOTE_ADDR")
+    return ip
