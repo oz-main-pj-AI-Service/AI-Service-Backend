@@ -70,7 +70,6 @@
 #             print(f"이메일 인증 완료 로깅 중 오류 발생: {e}")
 
 
-
 # @override_settings(SIGNAL_TESTING=True)
 # class ActivityLogSignalTest(TestCase):
 #     """ActivityLog 시그널 기능 테스트"""
