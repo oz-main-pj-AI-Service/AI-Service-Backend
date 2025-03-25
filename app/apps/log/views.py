@@ -5,11 +5,8 @@ from apps.utils.pagination import Pagination
 from django.contrib.auth import get_user_model
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, permissions, status
-from rest_framework.exceptions import NotAuthenticated, PermissionDenied
+from rest_framework import filters
 from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
 
 User = get_user_model()
 
@@ -62,7 +59,7 @@ class LogListCreateView(ListCreateAPIView):
 
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
         if not self.request.user.is_superuser:
-            queryset = queryset.filter(user_id=self.request.user.id)
+            queryset = queryset.filter(user_id=self.request.user)
 
         # 필터링 옵션
         action = self.request.query_params.get("action")
@@ -114,7 +111,7 @@ class LogRetrieveAPIView(RetrieveAPIView):
 
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
         if not (self.request.user.is_staff or self.request.user.is_superuser):
-            queryset = queryset.filter(user_id=self.request.user.id)
+            queryset = queryset.filter(user_id=self.request.user)
 
         return queryset
 
