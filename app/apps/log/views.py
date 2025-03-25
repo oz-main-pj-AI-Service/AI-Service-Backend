@@ -82,8 +82,6 @@ class LogRetrieveAPIView(RetrieveAPIView):
     queryset = ActivityLog.objects.all()
     serializer_class = ActivityLogSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
-    lookup_field = "id"
-    lookup_url_kwarg = "log_id"
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증

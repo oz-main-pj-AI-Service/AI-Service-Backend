@@ -9,6 +9,7 @@ class ActivityLog(models.Model):
         LOGIN = "LOGIN", "로그인"
         LOGOUT = "LOGOUT", "로그아웃"
         UPDATE_PROFILE = "UPDATE_PROFILE", "프로필 업데이트"
+        DELETE_PROFILE = "DELETE_PROFILE", "프로필 삭제"
         VIEW_REPORT = "VIEW_REPORT", "리포트 조회"
         CREATE_REPORT = "CREATE_REPORT", "리포트 생성"
         DELETE_REPORT = "DELETE_REPORT", "리포트 삭제"
