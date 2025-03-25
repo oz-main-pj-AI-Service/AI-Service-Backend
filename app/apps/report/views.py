@@ -112,6 +112,7 @@ class ReportListCreateView(ListCreateAPIView):
 class ReportDetailView(RetrieveDestroyAPIView):
     """리포트 상세 조회, 수정, 삭제 API"""
 
+    queryset = Report.objects.all()
     serializer_class = ReportRetrieveSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
@@ -174,6 +175,7 @@ class ReportDetailView(RetrieveDestroyAPIView):
 
 
 class ReportUpdateView(UpdateAPIView):
+    queryset = Report.objects.all()
     serializer_class = ReportUpdateSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
@@ -217,6 +219,7 @@ class ReportUpdateView(UpdateAPIView):
 
 
 class AdminReportUpdateView(UpdateAPIView):
+    queryset = Report.objects.all()
     serializer_class = ReportUpdateSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
