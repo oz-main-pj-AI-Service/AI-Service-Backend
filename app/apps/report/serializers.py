@@ -7,6 +7,7 @@ class ReportListCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = [
+            "id",
             "user_id",
             "title",
             "description",
@@ -14,11 +15,14 @@ class ReportListCreateSerializer(serializers.ModelSerializer):
             "type",
             "admin_comment",
             "admin_id",
+            "created_at",
         ]
         extra_kwargs = {
+            "id": {"read_only": True},
             "user_id": {"read_only": True},
             "admin_comment": {"required": False},
             "admin_id": {"required": False},
+            "created_at": {"read_only": True},
         }
 
     def validate_title(self, value):
@@ -33,6 +37,7 @@ class ReportRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
         fields = [
+            "id",
             "user_id",
             "title",
             "description",
@@ -43,6 +48,8 @@ class ReportRetrieveSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {
             "user_id": {"read_only": True},
+            "id": {"read_only": True},
+            "created_at": {"read_only": True},
         }
 
 
