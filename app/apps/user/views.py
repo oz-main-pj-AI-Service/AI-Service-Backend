@@ -361,7 +361,7 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
             user_id=request.user,
             action="UPDATE_PROFILE",
             ip_address=get_client_ip(request),
-            details=request.data,  # 업데이트된 필드를 details에 저장
+            details=response.data,  # 업데이트된 필드를 details에 저장
         )
 
         return response
