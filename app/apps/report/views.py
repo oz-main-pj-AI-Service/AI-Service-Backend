@@ -93,12 +93,10 @@ class ReportListCreateView(ListCreateAPIView):
         },
     )
     def create(self, request, *args, **kwargs):
-        print(request.data)
         """스웨거용 create"""
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        print("validated_data >>>", serializer.validated_data)
         serializer.save(user_id=self.request.user)
         ActivityLog.objects.create(
             user_id=self.request.user,
