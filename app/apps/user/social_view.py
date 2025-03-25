@@ -2,6 +2,8 @@ import os
 import urllib.parse
 
 import requests
+from apps.log.models import ActivityLog
+from apps.log.views import get_client_ip
 from apps.user.serializers import SocialUserCreateSerializer
 from apps.utils.jwt_cache import store_access_token
 from django.conf import settings
@@ -16,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 User = get_user_model()
 
 
-def check_user_create_or_login(user, email):
+def check_user_create_or_login(user, email, request):
     if user and not user.is_social:  # 일반 로그인 계정이면
         return Response(
             {
@@ -30,6 +32,12 @@ def check_user_create_or_login(user, email):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         store_access_token(user.id, access_token, 3600)  # redis 저장
+
+        ActivityLog.objects.create(
+            user_id=user.id,
+            action="LOGIN",
+            ip_address=get_client_ip(request),
+        )
 
         return Response(
             {
@@ -125,7 +133,7 @@ class GoogleSocialLoginCallbackView(APIView):
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(user, email)
+        return check_user_create_or_login(user, email, request)
 
 
 # class NaverSocialLoginView(APIView):
@@ -170,8 +178,6 @@ class NaverSocialLoginCallbackView(APIView):
             "client_id": settings.NAVER_CLIENT_ID,
             "client_secret": settings.NAVER_CLIENT_SECRET,
         }
-        print(settings.NAVER_CLIENT_ID)
-        print(settings.NAVER_CLIENT_SECRET)
         response = requests.post(token_url, headers=headers, data=data)
 
         access_token = response.json().get("access_token")
@@ -185,4 +191,4 @@ class NaverSocialLoginCallbackView(APIView):
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(user, email)
+        return check_user_create_or_login(user, email, request)
