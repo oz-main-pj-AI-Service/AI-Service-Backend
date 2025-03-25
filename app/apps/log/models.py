@@ -34,6 +34,7 @@ class ActivityLog(models.Model):
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
     class Meta:
+        db_table = "log_activitylog"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),
