@@ -34,7 +34,7 @@ def check_user_create_or_login(user, email, request):
         store_access_token(user.id, access_token, 3600)  # redis 저장
 
         ActivityLog.objects.create(
-            user_id=user.id,
+            user_id=user,
             action="LOGIN",
             ip_address=get_client_ip(request),
         )
