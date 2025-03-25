@@ -2,21 +2,17 @@ from apps.log.models import ActivityLog
 from apps.log.views import get_client_ip
 from apps.report.models import Report
 from apps.report.serializers import (
+    AdminReportUpdateSerializer,
     ReportListCreateSerializer,
-    ReportRetrieveSerializer,
-    ReportUpdateSerializer,
+    ReportRetrieveUpdateSerializer,
 )
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
-from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import (
     ListCreateAPIView,
-    RetrieveDestroyAPIView,
     RetrieveUpdateDestroyAPIView,
     UpdateAPIView,
 )
@@ -58,7 +54,7 @@ class ReportListCreateView(ListCreateAPIView):
         queryset = super().get_queryset()
 
         if not self.request.user.is_superuser:
-            queryset = queryset.filter(user_id=self.request.user.id)
+            queryset = queryset.filter(user_id=self.request.user)
 
         # 필터링
         status_filter = self.request.query_params.get("status")
@@ -109,87 +105,26 @@ class ReportListCreateView(ListCreateAPIView):
         )
 
 
-class ReportDetailView(RetrieveDestroyAPIView):
+class ReportDetailUpdateDestroyView(RetrieveUpdateDestroyAPIView):
     """리포트 상세 조회, 수정, 삭제 API"""
 
     queryset = Report.objects.all()
-    serializer_class = ReportRetrieveSerializer
-    permission_classes = [IsAuthenticatedJWTAuthentication]
-
-    @swagger_auto_schema(
-        security=[{"Bearer": []}],
-        responses={
-            200: "msg:리포트 조회.",
-            400: openapi.Response(
-                description=(
-                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
-                )
-            ),
-            401: openapi.Response(
-                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
-            ),
-            403: openapi.Response(
-                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
-            ),
-        },
-    )
-    def retrieve(self, request, *args, **kwargs):
-        ActivityLog.objects.create(
-            user_id=self.request.user,
-            action="VIEW_REPORT",
-            ip_address=get_client_ip(self.request),
-        )
-        return super().retrieve(request, *args, **kwargs)
-
-    @swagger_auto_schema(
-        security=[{"Bearer": []}],
-        responses={
-            200: "msg:리포트 조회.",
-            400: openapi.Response(
-                description=(
-                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
-                )
-            ),
-            401: openapi.Response(
-                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
-            ),
-            403: openapi.Response(
-                description=(
-                    "- `code`:`not_Admin`, 관리자가 아닙니다.\n"
-                    "- `code`:`not_Author`, 작성자가 아닙니다.\n"
-                )
-            ),
-        },
-    )
-    def delete(self, request, *args, **kwargs):
-        """리포트 삭제"""
-        report = self.get_object()
-        if report.user_id != self.request.user.id:
-            raise PermissionDenied(detail="작성자가 아닙니다.", code="not_Author")
-        ActivityLog.objects.create(
-            user_id=self.request.user,
-            action="DELETE_REPORT",
-            ip_address=get_client_ip(self.request),
-        )
-        return super().delete(request, *args, **kwargs)
-
-
-class ReportUpdateView(UpdateAPIView):
-    queryset = Report.objects.all()
-    serializer_class = ReportUpdateSerializer
+    serializer_class = ReportRetrieveUpdateSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     def get_object(self):
         response = super().get_object()
-        if not response.user_id == self.request.user.id:
-            raise PermissionDenied(
-                detail="사용자의 리포트가 아닙니다.", code="not_Author"
-            )
+        if self.request.method in ["PUT", "PATCH", "DELETE"]:
+            if not response.user_id == self.request.user:
+                raise PermissionDenied(
+                    detail="사용자의 리포트가 아닙니다.", code="not_Author"
+                )
+            return response
         return response
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
-        request_body=ReportUpdateSerializer,
+        request_body=ReportRetrieveUpdateSerializer,
         responses={
             200: "msg:리포트 조회.",
             400: openapi.Response(
@@ -217,10 +152,64 @@ class ReportUpdateView(UpdateAPIView):
         )
         return super().update(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:리포트 수정.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
+                )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
+            ),
+        },
+    )
+    def retrieve(self, request, *args, **kwargs):
+        ActivityLog.objects.create(
+            user_id=self.request.user,
+            action="VIEW_REPORT",
+            ip_address=get_client_ip(self.request),
+        )
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "msg:리포트 삭제.",
+            400: openapi.Response(
+                description=(
+                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
+                )
+            ),
+            401: openapi.Response(
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+            ),
+            403: openapi.Response(
+                description=(
+                    "- `code`:`not_Admin`, 관리자가 아닙니다.\n"
+                    "- `code`:`not_Author`, 작성자가 아닙니다.\n"
+                )
+            ),
+        },
+    )
+    def delete(self, request, *args, **kwargs):
+        """리포트 삭제"""
+        ActivityLog.objects.create(
+            user_id=self.request.user,
+            action="DELETE_REPORT",
+            ip_address=get_client_ip(self.request),
+        )
+        return super().delete(request, *args, **kwargs)
+
 
 class AdminReportUpdateView(UpdateAPIView):
     queryset = Report.objects.all()
-    serializer_class = ReportUpdateSerializer
+    serializer_class = AdminReportUpdateSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     def perform_update(self, serializer):
@@ -239,7 +228,7 @@ class AdminReportUpdateView(UpdateAPIView):
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
-        request_body=ReportUpdateSerializer,
+        request_body=AdminReportUpdateSerializer,
         responses={
             200: "msg:업데이트 성공.",
             400: openapi.Response(
