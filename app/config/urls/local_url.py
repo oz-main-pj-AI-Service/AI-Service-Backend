@@ -11,6 +11,7 @@ schema_view = get_schema_view(
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
+    authentication_classes=[],  # 여긴 비워두거나 원하는 인증 방식 추가 가능
 )
 
 urlpatterns = [
