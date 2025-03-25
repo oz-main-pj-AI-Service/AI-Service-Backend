@@ -26,6 +26,7 @@ from rest_framework.response import Response
 class ReportListCreateView(ListCreateAPIView):
     """리포트 목록 조회 및 생성 API"""
 
+    queryset = Report.objects.all()
     permission_classes = [IsAuthenticatedJWTAuthentication]
     pagination_class = Pagination
     serializer_class = ReportListCreateSerializer
@@ -46,7 +47,7 @@ class ReportListCreateView(ListCreateAPIView):
         """스웨거용 get"""
 
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="VIEW_REPORT",
             ip_address=get_client_ip(self.request),
         )
@@ -61,7 +62,7 @@ class ReportListCreateView(ListCreateAPIView):
 
         # 필터링
         status_filter = self.request.query_params.get("status")
-        if status:
+        if status_filter:
             queryset = queryset.filter(status=status_filter)
 
         report_type = self.request.query_params.get("type")
@@ -92,13 +93,15 @@ class ReportListCreateView(ListCreateAPIView):
         },
     )
     def create(self, request, *args, **kwargs):
+        print(request.data)
         """스웨거용 create"""
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
+        print("validated_data >>>", serializer.validated_data)
         serializer.save(user_id=self.request.user)
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="CREATE_REPORT",
             ip_address=get_client_ip(self.request),
             details={
@@ -133,7 +136,7 @@ class ReportDetailView(RetrieveDestroyAPIView):
     )
     def retrieve(self, request, *args, **kwargs):
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="VIEW_REPORT",
             ip_address=get_client_ip(self.request),
         )
@@ -165,7 +168,7 @@ class ReportDetailView(RetrieveDestroyAPIView):
         if report.user_id != self.request.user.id:
             raise PermissionDenied(detail="작성자가 아닙니다.", code="not_Author")
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="DELETE_REPORT",
             ip_address=get_client_ip(self.request),
         )
@@ -204,7 +207,7 @@ class ReportUpdateView(UpdateAPIView):
     )
     def update(self, request, *args, **kwargs):
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="UPDATE_REPORT",
             ip_address=get_client_ip(self.request),
             details={
@@ -222,9 +225,9 @@ class AdminReportUpdateView(UpdateAPIView):
     def perform_update(self, serializer):
         if not self.request.user.is_superuser:
             raise PermissionDenied(detail="관리자가 아닙니다.", code="not_Admin")
-        serializer.save(admin_id=self.request.user.id)
+        serializer.save(admin_id=self.request.user)
         ActivityLog.objects.create(
-            user_id=self.request.user.id,
+            user_id=self.request.user,
             action="UPDATE_REPORT",
             ip_address=get_client_ip(self.request),
             details={

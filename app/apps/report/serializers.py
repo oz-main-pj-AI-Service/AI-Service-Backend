@@ -5,7 +5,6 @@ from rest_framework import serializers
 class ReportListCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
-
         model = Report
         fields = [
             "user_id",
@@ -27,6 +26,7 @@ class ReportListCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 detail="제목은 100자 이내로 작성해주세요", code="title_too_long"
             )
+        return value
 
 
 class ReportRetrieveSerializer(serializers.ModelSerializer):
