@@ -222,7 +222,7 @@ class AdminReportUpdateView(UpdateAPIView):
             ip_address=get_client_ip(self.request),
             details={
                 "admin_comment": self.request.data.get("admin_comment"),
-                "admin_id": self.request.user.id,
+                "admin_id": str(self.request.user.id),
             },
         )
 
