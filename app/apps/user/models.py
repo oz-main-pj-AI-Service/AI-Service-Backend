@@ -9,7 +9,7 @@ class UserManager(BaseUserManager):
     def get_by_natural_key(self, email):
         return self.get(email=email)
 
-    def create_user(self, email, nickname, password, phone_number=None):
+    def create_user(self, email, nickname, password, phone_number=None, **kwargs):
         if not email:
             raise ValueError("올바른 이메일을 입력하세요.")
 
@@ -17,6 +17,7 @@ class UserManager(BaseUserManager):
             email=self.normalize_email(email),
             nickname=nickname,
             phone_number=phone_number,
+            **kwargs,
         )
 
         user.set_password(password)
