@@ -25,7 +25,7 @@ urlpatterns = [
         name="food-recommendation",
     ),
     path(
-        "food-result/{uuid:pk}/",
+        "food-result/{uuid:id}/",
         MenuRecommendListView.as_view(),
         name="food-result",
     ),
