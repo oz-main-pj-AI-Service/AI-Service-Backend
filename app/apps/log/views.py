@@ -44,14 +44,8 @@ class LogListView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return ActivityLog.objects.none()
 
         queryset = super().get_queryset()
-
-        user = self.request.user
-        if not user.is_authenticated:
-            return queryset.none()
 
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
         if not self.request.user.is_superuser:
@@ -101,23 +95,13 @@ class LogRetrieveAPIView(RetrieveAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        if getattr(self, "swagger_fake_view", False):
-            return ActivityLog.objects.none()  # Swagger 문서 생성 시는 빈 쿼리셋 반환
-
         queryset = super().get_queryset()
 
-        user = self.request.user
-        if not user.is_authenticated:
-            return queryset.none()
-
-        if not user.is_superuser:
-            queryset = queryset.filter(user_id=user)
+        # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            queryset = queryset.filter(user_id=self.request.user)
 
         return queryset
-
-    def get_object(self):
-        if getattr(self, "swagger_fake_view", False):
-            return ActivityLog()
 
 
 # 클라이언트 ip 주소 획득 함수

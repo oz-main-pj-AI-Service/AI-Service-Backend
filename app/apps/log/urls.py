@@ -5,5 +5,5 @@ app_name = "log"
 
 urlpatterns = [
     path("", LogListView.as_view(), name="list-create"),
-    path("<uuid:log_id>/", LogRetrieveAPIView.as_view(), name="retrieve"),
+    path("<uuid:pk>/", LogRetrieveAPIView.as_view(), name="retrieve"),
 ]
