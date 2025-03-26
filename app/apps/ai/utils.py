@@ -50,7 +50,9 @@ def validate_ingredients(ingredients):
     ]
 
     for item in ingredients:
-        if any(keyword in ingredients.lower() for keyword in security_keywords):
+        if isinstance(item, str) and any(
+            keyword in item.lower() for keyword in security_keywords
+        ):
             return False, ["보안상의 위험한 키워드는 사용을 자제해주세요🥲"]
 
     # Gemini API로 식재료 유효성 검사

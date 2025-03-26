@@ -24,7 +24,7 @@ class RecipeRequestSerializer(serializers.ModelSerializer):
 class HealthRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserHealthRequest
-        fields = ["weight", "exercise_frequency", "allergies", "disliked_foods"]
+        fields = ["weight", "goal", "exercise_frequency", "allergies", "disliked_foods"]
 
 
 # 음식추천 요청 시리얼라이저
