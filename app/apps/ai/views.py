@@ -21,6 +21,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.utils.authentication import IsAuthenticatedJWTAuthentication
+
 User = get_user_model()
 
 
@@ -29,7 +31,7 @@ class RecipeRecommendationView(APIView):
     메인 페이지: 보유 식재료 기반 요리 추천 AI 시스템
     """
 
-    # permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -75,12 +77,10 @@ class RecipeRecommendationView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # 인증된 사용자 확인
-            user = request.user if request.user.is_authenticated else None
 
             # AI 요청 데이터 저장
             ai_request = AIFoodRequest.objects.create(
-                user=user, request_type="recipe", request_data=validated_data
+                user=request.user, request_type="recipe", request_data=validated_data
             )
 
             # 스트리밍 모드 확인
@@ -245,7 +245,7 @@ class HealthBasedRecommendationView(APIView):
     AI 목표 기반 추천: 건강 목표에 따른 음식 추천
     """
 
-    # permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -502,7 +502,7 @@ class FoodRecommendationView(APIView):
     AI 기반 음식 추천: 사용자 선호도에 따른 음식 추천
     """
 
-    permission_classes = [IsAuthenticated]  # 로그인 필요시 주석 해제
+    permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
