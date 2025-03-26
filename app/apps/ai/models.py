@@ -5,35 +5,6 @@ from django.db import models
 
 User = get_user_model()
 
-
-class AIFoodRequest(models.Model):
-    REQUEST_TYPE_CHOICES = (
-        ("food", "음식 추천"),
-        ("health", "건강 기반 추천"),
-        ("recipe", "레시피 추천"),
-    )
-
-    id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name="사용자", null=True
-    )
-    request_type = models.CharField(
-        max_length=30, choices=REQUEST_TYPE_CHOICES, verbose_name="요청 유형"
-    )
-    request_data = models.JSONField(verbose_name="요청 데이터")
-    response_data = models.JSONField(null=True, blank=True, verbose_name="응답 데이터")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성 시간")
-
-    class Meta:
-        db_table = "AIFoodRequest"
-        app_label = "ai"
-        verbose_name = "AI 요청"
-        verbose_name_plural = "AI 요청 목록"
-
-    def __str__(self):
-        return f"{self.user.email}의 {self.get_request_type_display()} 요청 ({self.id})"
-
-
 class AIFoodResult(models.Model):
     REQUEST_TYPE_CHOICES = (
         ("food", "음식 추천"),
@@ -68,6 +39,32 @@ class AIFoodResult(models.Model):
     def __str__(self):
         return f"{self.food_name} - {self.user.email}"
 
+class AIFoodRequest(models.Model):
+    REQUEST_TYPE_CHOICES = (
+        ("food", "음식 추천"),
+        ("health", "건강 기반 추천"),
+        ("recipe", "레시피 추천"),
+    )
+
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="사용자", null=True
+    )
+    request_type = models.CharField(
+        max_length=30, choices=REQUEST_TYPE_CHOICES, verbose_name="요청 유형"
+    )
+    request_data = models.JSONField(verbose_name="요청 데이터")
+    response_data = models.JSONField(null=True, blank=True, verbose_name="응답 데이터")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="생성 시간")
+
+    class Meta:
+        db_table = "AIFoodRequest"
+        app_label = "ai"
+        verbose_name = "AI 요청"
+        verbose_name_plural = "AI 요청 목록"
+
+    def __str__(self):
+        return f"{self.user.email}의 {self.get_request_type_display()} 요청 ({self.id})"
 
 class AIRecipeRequest(models.Model):
     REQUEST_TYPE_CHOICES = (

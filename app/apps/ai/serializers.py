@@ -15,7 +15,7 @@ class RecipeRequestSerializer(serializers.Serializer):
     serving_size = serializers.CharField(help_text="몇 인분인지 (예: '2인분')")
     cooking_time = serializers.CharField(help_text="요리 시간 (분)")
     difficulty = serializers.ChoiceField(
-        choices=AIRecipeRequest.Difficulty.choices,
+        choices=AIRecipeRequest.w.choices,
         default=AIRecipeRequest.Difficulty.EASY,
         help_text="요리 난이도 (쉬움/중간/어려움)",
     )
