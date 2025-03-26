@@ -28,20 +28,10 @@ class HealthRequestSerializer(serializers.ModelSerializer):
 
 
 # 음식추천 요청 시리얼라이저
-class FoodRequestSerializer(serializers.Serializer):
-    cuisine_type = serializers.CharField(
-        required=True, help_text="음식 종류 (한식/중식/일식/양식/동남아)"
-    )
-    food_base = serializers.CharField(required=True, help_text="음식 기반 (면/밥/빵)")
-    taste = serializers.CharField(
-        required=True, help_text="맛 선호도 (단맛/고소한맛/매운맛/상큼한맛)"
-    )
-    dietary_type = serializers.CharField(
-        required=True, help_text="식단 유형 (자극적/건강한 맛)"
-    )
-    last_meal = serializers.CharField(
-        required=False, allow_blank=True, help_text="어제 먹은 음식 (선택 사항)"
-    )
+class FoodRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FoodRequest
+        fields = ["cuisine_type", "food_base", "taste", "dietary_type"]
 
 
 # 각 API 응답을 위한 시리얼라이저
@@ -78,3 +68,56 @@ class ErrorResponseSerializer(serializers.Serializer):
         required=False,
         help_text="유효하지 않은 항목 목록",
     )
+
+
+class MenuListChecksSerializer(serializers.ModelSerializer):
+    """
+    API 명세서 참조
+    AI 추천 음식 유저별 리스트 조회
+    admin일 경우 전체 리스트 조회
+    """
+
+    id = serializers.UUIDField(read_only=True)
+    request_data = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+
+    class Meta:
+        model = FoodResult
+        fields = [
+            "id",
+            "user",
+            "request_type",
+            "request_data",
+            "response_data",
+            "created_at",
+        ]
+
+    def get_request_data(self, obj):
+        try:
+            request_obj = obj.request_object  # 3개 api 중 하나
+
+            if obj.request_type == "RECIPE" and hasattr(request_obj, "ingredients"):
+                return {
+                    "ingredients": request_obj.ingredients,
+                    "serving_size": request_obj.serving_size,
+                    "cooking_time": request_obj.cooking_time,
+                    "difficulty": request_obj.difficulty,
+                }
+            elif obj.request_type == "HEALTH" and hasattr(request_obj, "weight"):
+                return {
+                    "weight": request_obj.weight,
+                    "exercise_frequency": request_obj.exercise_frequency,
+                    "allergies": request_obj.allergies,
+                    "disliked_foods": request_obj.disliked_foods,
+                }
+            elif obj.request_type == "FOOD" and hasattr(request_obj, "cuisine_type"):
+                return {
+                    "cuisine_type": request_obj.cuisine_type,
+                    "food_base": request_obj.food_base,
+                    "taste": request_obj.taste,
+                    "dietary_type": request_obj.dietary_type,
+                    "last_meal": request_obj.last_meal,
+                }
+            return {}
+        except Exception:
+            return {}

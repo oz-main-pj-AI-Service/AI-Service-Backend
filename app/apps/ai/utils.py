@@ -1,7 +1,10 @@
 import json
 
 import google.generativeai as genai
+from apps.ai.models import FoodRequest, FoodResult, RecipeRequest, UserHealthRequest
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from rest_framework.exceptions import ValidationError
 
 # Google Gemini API 설정
 genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -97,7 +100,7 @@ Yields:
 """
 
 
-def stream_response(prompt):
+def stream_response(prompt, request, ai_request):
 
     # 스트리밍 응답 시작
     yield "data: 응답 생성 중입니다...\n\n"
@@ -122,17 +125,44 @@ def stream_response(prompt):
         if "###JSON###" in full_response:
             json_part = full_response.split("###JSON###")[1].strip()
             # JSON 부분 추출 (코드 블록이 있을 경우 처리)
-            if "```json" in json_part:
-                json_part = json_part.split("```json")[1].split("```")[0].strip()
-            elif "```" in json_part:
-                json_part = json_part.split("```")[1].split("```")[0].strip()
+            json_part = clean_json_code_block(json_part)
 
             json_data = json.loads(json_part)
             # JSON 데이터를 특별 태그와 함께 전송
             yield f"data: FINAL_JSON:{json.dumps(json_data)}\n\n"
+
+            if isinstance(ai_request, RecipeRequest):
+                content_type = ContentType.objects.get_for_model(RecipeRequest)
+                request_type = "RECIPE"
+            elif isinstance(ai_request, UserHealthRequest):
+                content_type = ContentType.objects.get_for_model(UserHealthRequest)
+                request_type = "HEALTH"
+            elif isinstance(ai_request, FoodRequest):
+                content_type = ContentType.objects.get_for_model(FoodRequest)
+                request_type = "FOOD"
+            else:
+                raise ValidationError(
+                    {"detail": "지원하지 않는 타입 요청 입니다", "code": "no_type"}
+                )
+            FoodResult.objects.create(
+                user=request.user,
+                content_type=content_type,
+                object_id=ai_request.id,
+                response_data=json_data,
+                request_type=request_type,
+            )
+
     except Exception as e:
         # JSON 추출 실패 시 오류 메시지 전송
         yield f"data: JSON_ERROR:{str(e)}\n\n"
 
     # 스트리밍 완료
     yield "data: [DONE]\n\n"
+
+
+def clean_json_code_block(text):
+    if "```json" in text:
+        return text.split("```json")[1].split("```")[0].strip()
+    elif "```" in text:
+        return text.split("```")[1].split("```")[0].strip()
+    return text
