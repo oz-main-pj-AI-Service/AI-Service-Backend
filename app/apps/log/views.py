@@ -44,6 +44,8 @@ class LogListView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ActivityLog.objects.none()
 
         queryset = super().get_queryset()
 
