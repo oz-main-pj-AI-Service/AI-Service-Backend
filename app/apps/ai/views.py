@@ -122,6 +122,7 @@ class RecipeRecommendationView(APIView):
                         content_type=ContentType.objects.get_for_model(RecipeRequest),
                         object_id=ai_request.pk,
                         response_data=ai_response_data,
+                        request_type="RECIPE",
                     )
 
                     return Response(
@@ -153,7 +154,7 @@ class RecipeRecommendationView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-
+class AIRequestListView(ListAPIView)
 class HealthBasedRecommendationView(APIView):
     """
     AI 목표 기반 추천: 건강 목표에 따른 음식 추천

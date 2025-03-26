@@ -10,6 +10,9 @@ User = get_user_model()
 
 # 결과 저장 테이블
 class FoodResult(models.Model):
+
+    request_type_choice = (("RECIPE", "레시피"), ("HEALTH", "건강"), ("FOOD", "음식"))
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
@@ -17,6 +20,7 @@ class FoodResult(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.UUIDField()
     request_object = GenericForeignKey("content_type", "object_id")
+    request_type = models.CharField(choices=request_type_choice, max_length=8)
 
     response_data = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
