@@ -115,6 +115,10 @@ class LogRetrieveAPIView(RetrieveAPIView):
 
         return queryset
 
+    def get_object(self):
+        if getattr(self, "swagger_fake_view", False):
+            return ActivityLog()
+
 
 # 클라이언트 ip 주소 획득 함수
 def get_client_ip(request):
