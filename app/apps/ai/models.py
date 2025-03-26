@@ -76,11 +76,6 @@ class AIRecipeRequest(models.Model):
         ("recipe", "레시피 추천"),
     )
 
-    class Difficulty(models.TextChoices):
-        EASY = "easy", "쉬움"
-        MEDIUM = "medium", "중간"
-        HARD = "hard", "어려움"
-
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, verbose_name="레시피 이름")
     request_type = models.CharField(
@@ -90,12 +85,7 @@ class AIRecipeRequest(models.Model):
     preparation_time = models.IntegerField(verbose_name="준비 시간(분)")
     cooking_time = models.IntegerField(verbose_name="조리 시간(분)")
     serving_size = models.IntegerField(verbose_name="제공 인원")
-    difficulty = models.CharField(
-        max_length=20,
-        choices=Difficulty.choices,
-        default=Difficulty.EASY,
-        verbose_name="난이도",
-    )
+    difficulty = models.CharField(max_length=20, verbose_name="난이도")
     cuisine_type = models.CharField(
         max_length=50, verbose_name="요리 종류(한식/중식 등)"
     )
