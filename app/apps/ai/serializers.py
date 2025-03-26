@@ -1,24 +1,17 @@
 from apps.ai.models import (
-    AIFoodRequest,
-    AIFoodResult,
-    AIRecipeRequest,
-    AIUserHealthRequest,
+    FoodRequest,
+    FoodResult,
+    RecipeRequest,
+    UserHealthRequest,
 )
 from rest_framework import serializers
 
 
 # 레시피 추천 요청 시리얼라이저
-class RecipeRequestSerializer(serializers.Serializer):
-    ingredients = serializers.ListField(
-        child=serializers.CharField(), help_text="요리에 사용할 재료 목록"
-    )
-    serving_size = serializers.CharField(help_text="몇 인분인지 (예: '2인분')")
-    cooking_time = serializers.CharField(help_text="요리 시간 (분)")
-    difficulty = serializers.ChoiceField(
-        choices=AIRecipeRequest.w.choices,
-        default=AIRecipeRequest.Difficulty.EASY,
-        help_text="요리 난이도 (쉬움/중간/어려움)",
-    )
+class RecipeRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RecipeRequest
+        fields = ["ingredients", "serving_size", "cooking_time", "difficulty"]
 
     def validate_ingredients(self, value):
         """재료가 비어있는지 확인"""
@@ -28,30 +21,10 @@ class RecipeRequestSerializer(serializers.Serializer):
 
 
 # 건강식단 추천 요청 시리얼라이저
-class HealthRequestSerializer(serializers.Serializer):
-    weight = serializers.DecimalField(
-        max_digits=5, decimal_places=2, help_text="몸무게 (kg)"
-    )
-    goal = serializers.ChoiceField(
-        choices=AIUserHealthRequest.Goal.choices,
-        help_text="목표 (벌크업/다이어트/유지)",
-    )
-    exercise_frequency = serializers.ChoiceField(
-        choices=AIUserHealthRequest.ExerciseFrequency.choices,
-        help_text="운동 빈도 (주1회/주2~3회/주4~5회/운동안함)",
-    )
-    allergies = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        default=list,
-        help_text="알레르기 정보 (선택 사항)",
-    )
-    disliked_foods = serializers.ListField(
-        child=serializers.CharField(),
-        required=False,
-        default=list,
-        help_text="비선호 음식 정보 (선택 사항)",
-    )
+class HealthRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserHealthRequest
+        fields = ["weight", "exercise_frequency", "allergies", "disliked_foods"]
 
 
 # 음식추천 요청 시리얼라이저

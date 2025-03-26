@@ -1,18 +1,21 @@
 import json
 
 from apps.ai.models import (
-    AIFoodRequest,
-    AIFoodResult,
-    AIRecipeRequest,
-    AIUserHealthRequest,
+    FoodRequest,
+    FoodResult,
+    RecipeRequest,
+    UserHealthRequest,
 )
 from apps.ai.serializers import (
     FoodRequestSerializer,
     HealthRequestSerializer,
     RecipeRequestSerializer,
 )
+from apps.ai.service import recipe_prompt
 from apps.ai.utils import model, stream_response, validate_ingredients
+from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -20,8 +23,6 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 
 User = get_user_model()
 
@@ -64,7 +65,6 @@ class RecipeRecommendationView(APIView):
             # 유효한 데이터 추출
             validated_data = serializer.validated_data
             ingredients = validated_data.get("ingredients", [])
-
             # 식재료 유효성 검사
             is_valid, invalid_items = validate_ingredients(ingredients)
             if not is_valid:
@@ -77,11 +77,8 @@ class RecipeRecommendationView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-
-            # AI 요청 데이터 저장
-            ai_request = AIFoodRequest.objects.create(
-                user=request.user, request_type="recipe", request_data=validated_data
-            )
+            # AI 요청 데이터 DB저장
+            ai_request = serializer.save()
 
             # 스트리밍 모드 확인
             streaming_mode = (
@@ -90,83 +87,14 @@ class RecipeRecommendationView(APIView):
 
             # Gemini API 요청 프롬프트 구성
             if streaming_mode:
-                prompt = f"""
-                다음 재료를 사용해서 요리 레시피를 만들어주세요. 자세하고 맛있게 설명해주세요:
-                재료: {', '.join(validated_data['ingredients'])}
-                몇인분: {validated_data['serving_size']}
-                소요 시간: {validated_data['cooking_time']}분
-                난이도: {validated_data['difficulty']}
-
-                먼저 자연스러운 대화형으로 레시피를 설명해주세요. 
-                그 후에 다음 형식으로 레시피 정보를 JSON 형식으로 제공해주세요:
-
-                ###JSON###
-                {{
-                    "name": "요리이름",
-                    "description": "간단한 요리 설명",
-                    "cuisine_type": "요리 종류(한식/중식 등)",
-                    "meal_type": "식사 종류(아침/점심/저녁)",
-                    "preparation_time": 준비시간(분),
-                    "cooking_time": 조리시간(분),
-                    "serving_size": 제공인원,
-                    "difficulty": "{validated_data['difficulty']}",
-                    "ingredients": [
-                        {{"name": "재료1", "amount": "양"}},
-                        {{"name": "재료2", "amount": "양"}}
-                    ],
-                    "instructions": [
-                        {{"step": 1, "description": "조리 단계 설명"}},
-                        {{"step": 2, "description": "조리 단계 설명"}}
-                    ],
-                    "nutrition_info": {{
-                        "calories": 칼로리,
-                        "protein": 단백질(g),
-                        "carbs": 탄수화물(g),
-                        "fat": 지방(g)
-                    }}
-                }}
-                """
+                prompt = recipe_prompt(validated_data)
 
                 # 스트리밍 응답 반환
                 return StreamingHttpResponse(
                     stream_response(prompt), content_type="text/event-stream"
                 )
             else:
-                prompt = f"""
-                다음 재료를 사용해서 요리 레시피를 만들어주세요:
-                재료: {', '.join(validated_data['ingredients'])}
-                몇인분: {validated_data['serving_size']}
-                소요 시간: {validated_data['cooking_time']}분
-                난이도: {validated_data['difficulty']}
-
-                다음 형식으로 반환해주세요:
-                {{
-                    "name": "요리이름",
-                    "description": "간단한 요리 설명",
-                    "cuisine_type": "요리 종류(한식/중식 등)",
-                    "meal_type": "식사 종류(아침/점심/저녁)",
-                    "preparation_time": 준비시간(분),
-                    "cooking_time": 조리시간(분),
-                    "serving_size": 제공인원,
-                    "difficulty": "{validated_data['difficulty']}",
-                    "ingredients": [
-                        {{"name": "재료1", "amount": "양"}},
-                        {{"name": "재료2", "amount": "양"}}
-                    ],
-                    "instructions": [
-                        {{"step": 1, "description": "조리 단계 설명"}},
-                        {{"step": 2, "description": "조리 단계 설명"}}
-                    ],
-                    "nutrition_info": {{
-                        "calories": 칼로리,
-                        "protein": 단백질(g),
-                        "carbs": 탄수화물(g),
-                        "fat": 지방(g)
-                    }}
-                }}
-
-                JSON 형식으로만 반환해주세요. 다른 텍스트나 설명은 포함하지 마세요.
-                """
+                prompt = recipe_prompt(validated_data)
 
                 # Gemini API 호출
                 response = model.generate_content(prompt)
@@ -186,35 +114,21 @@ class RecipeRecommendationView(APIView):
                         )
 
                     # JSON 파싱
-                    recipe_data = json.loads(response_text)
+                    ai_response_data = json.loads(response_text)
 
-                    # AI 응답 저장
-                    ai_request.response_data = recipe_data
-                    ai_request.save()
-
-                    # 레시피 데이터 저장
-                    recipe = AIRecipeRequest.objects.create(
-                        name=recipe_data["name"],
-                        request_type="recipe",
-                        description=recipe_data["description"],
-                        preparation_time=recipe_data["preparation_time"],
-                        cooking_time=recipe_data["cooking_time"],
-                        serving_size=recipe_data["serving_size"],
-                        difficulty=recipe_data["difficulty"],
-                        cuisine_type=recipe_data["cuisine_type"],
-                        meal_type=recipe_data["meal_type"],
-                        ingredients=recipe_data["ingredients"],
-                        instructions=recipe_data["instructions"],
-                        nutrition_info=recipe_data.get("nutrition_info", {}),
-                        is_ai_generated=True,
-                        ai_request=ai_request,
+                    # 결과 저장
+                    recipe = FoodResult.objects.create(
+                        user=request.user,
+                        content_type=ContentType.objects.get_for_model(RecipeRequest),
+                        object_id=ai_request.pk,
+                        response_data=ai_response_data,
                     )
 
                     return Response(
                         {
                             "success": True,
                             "recipe_id": str(recipe.id),
-                            "recipe": recipe_data,
+                            "recipe": ai_response_data,
                         },
                         status=status.HTTP_200_OK,
                     )
