@@ -154,6 +154,49 @@ class UserRegisterView(APIView):
 
 
 class VerifyEmailView(APIView):
+    def get(self, request):
+        token = request.query_params.get("token")  # ✅ GET에서는 query_params 사용
+
+        if not token:
+            return Response(
+                {"error": "토큰이 없습니다.", "code": "no_token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            decode = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            user = User.objects.get(id=decode["user_id"])
+
+            if user.email_verified:
+                return Response(
+                    {"message": "이미 인증된 계정입니다.", "code": "email_verified"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.email_verified = True
+            user.is_active = True
+            user.save()
+
+            return Response(
+                {"message": "이메일 인증이 완료되었습니다. 계정이 인증되었습니다."},
+                status=status.HTTP_200_OK,
+            )
+
+        except jwt.ExpiredSignatureError:
+            return Response(
+                {"error": "토큰이 만료되었습니다.", "code": "token_expired"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except jwt.DecodeError:
+            return Response(
+                {"error": "잘못된 토큰입니다.", "code": "invalid_token"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except User.DoesNotExist:
+            return Response(
+                {"error": "존재하지 않는 사용자입니다.", "code": "UserDoesNotExist"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
     @swagger_auto_schema(
         security=[{"Bearer": []}],
         request_body=VerifyEmailSerializer,
