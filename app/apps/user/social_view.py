@@ -129,6 +129,8 @@ class GoogleSocialLoginCallbackView(APIView):
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
 
+        print("USER_INFO:", user_info)
+
         email = user_info.get("email")
 
         user = User.objects.filter(email=email).first()
