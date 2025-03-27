@@ -2,6 +2,8 @@ import json
 
 import google.generativeai as genai
 from apps.ai.models import FoodRequest, FoodResult, RecipeRequest, UserHealthRequest
+from apps.log.models import ActivityLog
+from apps.log.views import get_client_ip
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from rest_framework.exceptions import ValidationError
@@ -136,12 +138,15 @@ def stream_response(prompt, request, ai_request):
             if isinstance(ai_request, RecipeRequest):
                 content_type = ContentType.objects.get_for_model(RecipeRequest)
                 request_type = "RECIPE"
+                action = "RECIPE_REQUEST"
             elif isinstance(ai_request, UserHealthRequest):
                 content_type = ContentType.objects.get_for_model(UserHealthRequest)
                 request_type = "HEALTH"
+                action = "HEALTH_REQUEST"
             elif isinstance(ai_request, FoodRequest):
                 content_type = ContentType.objects.get_for_model(FoodRequest)
                 request_type = "FOOD"
+                action = "FOOD_REQUEST"
             else:
                 raise ValidationError(
                     {"detail": "지원하지 않는 타입 요청 입니다", "code": "no_type"}
@@ -152,6 +157,12 @@ def stream_response(prompt, request, ai_request):
                 object_id=ai_request.id,
                 response_data=json_data,
                 request_type=request_type,
+            )
+
+            ActivityLog.objects.create(
+                user_id=request.user,
+                action=action,
+                ip_address=get_client_ip(request),
             )
 
     except Exception as e:
