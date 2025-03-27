@@ -137,7 +137,7 @@ class UserRegisterView(APIView):
                 scheme = "http"
 
             token = jwt.encode({"user_id": id}, settings.SECRET_KEY, algorithm="HS256")
-            verify_url = f"{scheme}://{domain}/api/user/verify-email/?token={token}"
+            verify_url = f"http://localhost:5173/verify-email/?token={token}"
             send_mail(
                 "이메일 인증을 완료해 주세요",
                 f"다음 링크를 클릭, 이메일 인증을 완료해주세요: {verify_url}",
