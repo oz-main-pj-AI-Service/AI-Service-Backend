@@ -247,3 +247,17 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+
+swagger_settings = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
+        }
+    },
+}
+
+# settings.py 에 추가해줘야 작동함
+SWAGGER_SETTINGS = swagger_settings

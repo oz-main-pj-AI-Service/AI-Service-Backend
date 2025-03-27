@@ -1,6 +1,7 @@
 from apps.ai.views import (
     FoodRecommendationView,
     HealthBasedRecommendationView,
+    MenuRecommendListView,
     RecipeRecommendationView,
 )
 from django.urls.conf import path
@@ -11,16 +12,21 @@ urlpatterns = [
     path(
         "recipe-recommendation/",
         RecipeRecommendationView.as_view(),
-        name="recipe_recommendation",
+        name="recipe-recommendation",
     ),
     path(
         "health-recommendation/",
         HealthBasedRecommendationView.as_view(),
-        name="health_recommendation",
+        name="health-recommendation",
     ),
     path(
         "food-recommendation/",
         FoodRecommendationView.as_view(),
-        name="food_recommendation",
+        name="food-recommendation",
+    ),
+    path(
+        "food-result/",
+        MenuRecommendListView.as_view(),
+        name="food-result",
     ),
 ]

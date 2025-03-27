@@ -9,10 +9,14 @@ class ActivityLog(models.Model):
         LOGIN = "LOGIN", "로그인"
         LOGOUT = "LOGOUT", "로그아웃"
         UPDATE_PROFILE = "UPDATE_PROFILE", "프로필 업데이트"
+        DELETE_PROFILE = "DELETE_PROFILE", "프로필 삭제"
         VIEW_REPORT = "VIEW_REPORT", "리포트 조회"
         CREATE_REPORT = "CREATE_REPORT", "리포트 생성"
         DELETE_REPORT = "DELETE_REPORT", "리포트 삭제"
         UPDATE_REPORT = "UPDATE_REPORT", "리포트 수정"
+        FOOD_REQUEST = "FOOD_REQUEST", "AI 음식 추천"
+        RECIPE_REQUEST = "RECIPE_REQUEST", "AI 음식 레시피 추천"
+        HEALTH_REQUEST = "HELATH_REQUEST", "AI 건강 식단 추천"
 
     id = models.UUIDField(
         primary_key=True, default=uuid.uuid4, editable=False, help_text="로그 ID"
@@ -34,6 +38,7 @@ class ActivityLog(models.Model):
     details = models.JSONField(null=True, blank=True, help_text="추가 정보")
 
     class Meta:
+        db_table = "log_activitylog"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user_id"]),

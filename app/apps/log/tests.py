@@ -1,342 +1,184 @@
-# import json
-# import uuid
-# from unittest.mock import MagicMock, patch
-
-# from apps.log.models import ActivityLog
-# from django.contrib.auth import get_user_model
-# from django.contrib.auth.signals import user_logged_in, user_logged_out
-# from django.db.models.signals import post_save
-# from django.test import TestCase, override_settings
-# from django.urls import reverse
-# from rest_framework.test import APIClient
-
-# User = get_user_model()
-#
-#
-# # 시그널 핸들러 직접 정의
-# def create_login_log(sender, user, request, **kwargs):
-#     """사용자 로그인 시 activity log 기록"""
-#     try:
-#         ActivityLog.objects.create(
-#             user_id=user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             ip_address="127.0.0.1",
-#             user_agent=request.META.get("HTTP_USER_AGENT", ""),
-#             details={"message": "로그인 성공"},
-#         )
-#     except Exception as e:
-#         print(f"사용자 로그인 로깅 중 오류 발생: {e}")
-
-# def create_logout_log(sender, user, request, **kwargs):
-#     """사용자 로그아웃 시 ActivityLog 생성"""
-#     if user:
-#         try:
-#             ActivityLog.objects.create(
-#                 user_id=user,
-#                 action=ActivityLog.ActionType.LOGOUT,
-#                 ip_address="127.0.0.1",
-#                 user_agent=request.META.get("HTTP_USER_AGENT", ""),
-#                 details={"message": "로그아웃 성공"},
-#             )
-#         except Exception as e:
-#             print(f"사용자 로그아웃 로깅 중 오류 발생: {e}")
-
-# def create_user_log(sender, instance, created, **kwargs):
-#     """사용자 계정 생성 시 로그 자동 기록"""
-#     if created:
-#         try:
-#             ActivityLog.objects.create(
-#                 user_id=instance,
-#                 action=ActivityLog.ActionType.UPDATE_PROFILE,
-#                 ip_address="0.0.0.0",
-#                 user_agent="System",
-#                 details={"message": "사용자 계정 생성"},
-#             )
-#         except Exception as e:
-#             print(f"사용자 계정 생성 로깅 중 오류 발생: {e}")
-
-# def create_email_verification_log(sender, instance, created, **kwargs):
-#     """이메일 인증 완료 시 로그 생성"""
-#     if not created and hasattr(instance, "email_verified") and instance.email_verified:
-#         try:
-#             ActivityLog.objects.create(
-#                 user_id=instance,
-#                 action=ActivityLog.ActionType.UPDATE_PROFILE,
-#                 ip_address="0.0.0.0",
-#                 user_agent="System",
-#                 details={"message": "이메일 인증 완료"},
-#             )
-#         except Exception as e:
-#             print(f"이메일 인증 완료 로깅 중 오류 발생: {e}")
-
-
-# @override_settings(SIGNAL_TESTING=True)
-# class ActivityLogSignalTest(TestCase):
-#     """ActivityLog 시그널 기능 테스트"""
-
-#     # 테스트 데이터베이스 처리 방식 변경
-#     multi_db = True
-
-
-#     def setUp(self):
-#         """테스트 데이터 설정"""
-#         # 시그널 핸들러 등록
-#         user_logged_in.connect(create_login_log)
-#         user_logged_out.connect(create_logout_log)
-#         post_save.connect(create_user_log, sender=User)
-#         post_save.connect(create_email_verification_log, sender=User)
-
-
-#         # 각 테스트마다 고유한 이메일 사용
-#         admin_email = f"admin_{uuid.uuid4()}@example.com"
-#         user_email = f"user_{uuid.uuid4()}@example.com"
-
-
-#         # 관리자 사용자 생성
-#         self.admin_user = User.objects.create_superuser(
-#             email=admin_email,
-#             password="adminpassword",
-#             nickname="관리자",
-#         )
-#         # 일반 사용자 생성
-#         self.normal_user = User.objects.create_user(
-#             email=user_email,
-#             password="userpassword",
-#             nickname="일반사용자",
-#         )
-#         # Django 테스트 클라이언트
-#         self.client = self.client_class()
-#         # API 테스트용 클라이언트
-#         self.api_client = APIClient()
-
-#     def tearDown(self):
-#         """테스트 종료 시 정리"""
-#         # 시그널 연결 해제
-#         user_logged_in.disconnect(create_login_log)
-#         user_logged_out.disconnect(create_logout_log)
-#         post_save.disconnect(create_user_log, sender=User)
-#         post_save.disconnect(create_email_verification_log, sender=User)
-
-#     @patch("apps.utils.signals.get_client_ip")
-#     def test_login_creates_log(self, mock_get_client_ip):
-#         """로그인 시 로그가 생성되는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-
-#         # IP 주소 모킹
-#         mock_get_client_ip.return_value = "127.0.0.1"
-
-#         # Mock 요청 객체 생성
-#         request = MagicMock()
-#         request.META = {"REMOTE_ADDR": "127.0.0.1", "HTTP_USER_AGENT": "Test Browser"}
-
-#         # 시그널 직접 발생
-#         user_logged_in.send(sender=User, request=request, user=self.normal_user)
-
-
-#         # 생성된 로그 찾기
-#         log = ActivityLog.objects.filter(
-#             user_id=self.normal_user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             details__message="로그인 성공",
-#         ).first()
-
-#         # 로그가 생성되었는지 확인
-#         self.assertIsNotNone(log, "로그인 로그가 생성되지 않았습니다")
-#         self.assertEqual(log.user_id, self.normal_user)
-#         self.assertEqual(log.action, ActivityLog.ActionType.LOGIN)
-
-#     @patch("apps.utils.signals.get_client_ip")
-#     def test_logout_creates_log(self, mock_get_client_ip):
-#         """로그아웃 시 로그가 생성되는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-
-#         # IP 주소 모킹
-#         mock_get_client_ip.return_value = "127.0.0.1"
-
-#         # Mock 요청 객체 생성
-#         request = MagicMock()
-#         request.META = {"REMOTE_ADDR": "127.0.0.1", "HTTP_USER_AGENT": "Test Browser"}
-
-#         # 시그널 직접 발생
-#         user_logged_out.send(sender=User, request=request, user=self.normal_user)
-
-
-#         # 생성된 로그 찾기
-#         log = ActivityLog.objects.filter(
-#             user_id=self.normal_user,
-#             action=ActivityLog.ActionType.LOGOUT,
-#             details__message="로그아웃 성공",
-#         ).first()
-
-#         # 로그가 생성되었는지 확인
-#         self.assertIsNotNone(log, "로그아웃 로그가 생성되지 않았습니다")
-#         self.assertEqual(log.user_id, self.normal_user)
-#         self.assertEqual(log.action, ActivityLog.ActionType.LOGOUT)
-
-#     def test_user_creation_creates_log(self):
-#         """사용자 생성 시 로그가 생성되는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-#         # 새 사용자 생성 (고유 이메일 사용)
-#         new_email = f"newuser_{uuid.uuid4()}@example.com"
-#         new_user = User.objects.create_user(
-#             email=new_email,
-#             password="newuserpassword",
-#             nickname="새사용자",
-#         )
-
-#         # 생성된 로그 찾기
-#         log = ActivityLog.objects.filter(
-#             user_id=new_user,
-#             action=ActivityLog.ActionType.UPDATE_PROFILE,
-#             details__message="사용자 계정 생성",
-#         ).first()
-
-#         # 로그가 생성되었는지 확인
-#         self.assertIsNotNone(log, "사용자 생성 로그가 생성되지 않았습니다")
-#         self.assertEqual(log.user_id, new_user)
-#         self.assertEqual(log.action, ActivityLog.ActionType.UPDATE_PROFILE)
-
-#     def test_email_verification_creates_log(self):
-#         """이메일 인증 완료 시 로그가 생성되는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-#         # 사용자의 이메일 인증 속성이 있는지 확인
-#         if not hasattr(self.normal_user, "email_verified"):
-#             # 테스트에서만 속성 추가
-#             self.normal_user.email_verified = False
-#             self.normal_user.save()
-#             # 속성 추가 시 로그가 생성될 수 있으므로 다시 삭제
-#             ActivityLog.objects.all().delete()
-
-
-#         # 이메일 인증 상태 변경
-#         self.normal_user.email_verified = True
-#         self.normal_user.save()
-
-
-#         # 생성된 로그 찾기
-#         log = ActivityLog.objects.filter(
-#             user_id=self.normal_user,
-#             action=ActivityLog.ActionType.UPDATE_PROFILE,
-#             details__message="이메일 인증 완료",
-#         ).first()
-
-#         # 로그가 생성되었는지 확인
-#         self.assertIsNotNone(log, "이메일 인증 로그가 생성되지 않았습니다")
-#         self.assertEqual(log.user_id, self.normal_user)
-#         self.assertEqual(log.action, ActivityLog.ActionType.UPDATE_PROFILE)
-
-#     def test_admin_can_view_all_logs(self):
-#         """관리자가 모든 로그를 볼 수 있는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-#         # 테스트용 로그 생성
-#         admin_log = ActivityLog.objects.create(
-#             user_id=self.admin_user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             ip_address="127.0.0.1",
-#             user_agent="Test Browser",
-#             details={"message": "관리자 로그인"},
-#         )
-
-#         user_log = ActivityLog.objects.create(
-#             user_id=self.normal_user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             ip_address="127.0.0.1",
-#             user_agent="Test Browser",
-#             details={"message": "일반 사용자 로그인"},
-#         )
-
-
-#         # API 클라이언트로 관리자 인증
-#         self.api_client.force_authenticate(user=self.admin_user)
-
-
-#         # 로그 조회 API 호출 - 실제 URL 패턴 이름으로 변경 필요
-#         try:
-#             url = reverse("api:logs-list")  # URL 이름이 api:logs-list일 수 있음
-#         except:
-#             try:
-#                 url = reverse("log:log-list")  # 또는 log:log-list일 수 있음
-#             except:
-#                 # 테스트 목적으로 하드코딩된 URL 사용
-#                 url = "/api/logs/"
-
-
-#         response = self.api_client.get(url, format="json")
-
-#         # 응답 확인
-#         self.assertEqual(response.status_code, 200)
-
-
-#         # 모든 사용자의 로그가 포함되어 있는지 확인
-#         data = json.loads(response.content)
-#         results = data.get("results", data)  # 페이지네이션 여부에 따라 다름
-#         user_ids = [log.get("user_id") for log in results]
-
-
-#         # admin_user와 normal_user 모두의 로그가 포함되어 있어야 함
-#         self.assertTrue(str(self.admin_user.id) in user_ids)
-#         self.assertTrue(str(self.normal_user.id) in user_ids)
-
-
-#     def test_user_can_view_only_own_logs(self):
-#         """일반 사용자가 자신의 로그만 볼 수 있는지 테스트"""
-#         # 테스트 시작 시 로그 삭제
-#         ActivityLog.objects.all().delete()
-
-#         # 테스트용 로그 생성
-#         admin_log = ActivityLog.objects.create(
-#             user_id=self.admin_user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             ip_address="127.0.0.1",
-#             user_agent="Test Browser",
-#             details={"message": "관리자 로그인"},
-#         )
-
-#         user_log = ActivityLog.objects.create(
-#             user_id=self.normal_user,
-#             action=ActivityLog.ActionType.LOGIN,
-#             ip_address="127.0.0.1",
-#             user_agent="Test Browser",
-#             details={"message": "일반 사용자 로그인"},
-#         )
-
-
-#         # API 클라이언트로 일반 사용자 인증
-#         self.api_client.force_authenticate(user=self.normal_user)
-
-
-#         # 로그 조회 API 호출 - 실제 URL 패턴 이름으로 변경 필요
-#         try:
-#             url = reverse("api:logs-list")  # URL 이름이 api:logs-list일 수 있음
-#         except:
-#             try:
-#                 url = reverse("log:log-list")  # 또는 log:log-list일 수 있음
-#             except:
-#                 # 테스트 목적으로 하드코딩된 URL 사용
-#                 url = "/api/logs/"
-
-
-#         response = self.api_client.get(url, format="json")
-
-#         # 응답 확인
-#         self.assertEqual(response.status_code, 200)
-
-
-#         # 사용자 자신의 로그만 포함되어 있는지 확인
-#         data = json.loads(response.content)
-#         results = data.get("results", data)  # 페이지네이션 여부에 따라 다름
-#         user_ids = [log.get("user_id") for log in results]
-
-#         # normal_user의 로그만 포함되어 있어야 함
-#         self.assertTrue(str(self.normal_user.id) in user_ids)
-#         self.assertFalse(str(self.admin_user.id) in user_ids)
+from apps.log.models import ActivityLog
+from apps.report.models import Report
+from django.contrib.auth import get_user_model
+from django.test.testcases import TestCase
+from django.urls.base import reverse
+from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
+
+User = get_user_model()
+
+
+class ActivityLogModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="test@test.com",
+            nickname="test",
+            password="test1234",
+            phone_number="1234",
+        )
+
+    def test_create_activity_log(self):
+
+        log = ActivityLog.objects.create(
+            user_id=self.user,
+            action="LOGIN",
+            ip_address="127.0.0.1",
+            details={"test": "test"},
+        )
+        self.assertEqual(ActivityLog.objects.all().count(), 1)
+        self.assertEqual(log.action, "LOGIN")
+        self.assertEqual(log.ip_address, "127.0.0.1")
+        self.assertEqual(log.details["test"], "test")
+
+
+class ActivityLogAPITest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="test@test.com",
+            nickname="test",
+            password="test1234",
+            phone_number="1234",
+            email_verified=True,
+        )
+        token = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token.access_token))
+
+    def test_login_log(self):
+        self.client.post(
+            reverse("user:login"),
+            data={"email": "test@test.com", "password": "test1234"},
+        )
+
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "LOGIN")
+        self.assertEqual(log.filter(user_id=self.user).first().ip_address, "127.0.0.1")
+
+    def test_logout_log(self):
+        self.client.post(reverse("user:logout"))
+
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "LOGOUT")
+        self.assertEqual(log.filter(user_id=self.user).first().ip_address, "127.0.0.1")
+
+    def test_update_log(self):
+        self.client.patch(reverse("user:profile"), data={"nickname": "test_log"})
+
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "UPDATE_PROFILE")
+        self.assertEqual(log.filter(user_id=self.user).first().ip_address, "127.0.0.1")
+        self.assertEqual(
+            log.filter(user_id=self.user).first().details["nickname"], "test_log"
+        )
+
+    def test_delete_log(self):
+        self.client.delete(reverse("user:profile"))
+
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "DELETE_PROFILE")
+
+    def test_report_view_log(self):
+        self.client.get(reverse("report:list-create"))
+
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "VIEW_REPORT")
+
+    def test_report_create_update_log(self):
+        self.client.post(
+            reverse("report:list-create"),
+            data={
+                "title": "Test Report",
+                "description": "Test description",
+                "status": "IN_PROGRESS",
+                "type": "QUESTION",
+            },
+        )
+
+        # Create Log
+        log = ActivityLog.objects.all()
+        self.assertEqual(log.count(), 1)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "CREATE_REPORT")
+        self.assertEqual(
+            log.filter(user_id=self.user).first().details["title"], "Test Report"
+        )
+        id = Report.objects.filter(user_id=self.user).first().id
+        # Update Log
+        self.client.patch(
+            reverse("report:detail-update-destroy", kwargs={"pk": id}),
+            data={"title": "Update_Report"},
+        )
+
+        self.assertEqual(log.count(), 2)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "UPDATE_REPORT")
+        self.assertEqual(
+            log.filter(user_id=self.user).first().details["title"], "Update_Report"
+        )
+
+        # Profile Detail Get log
+        self.client.get(reverse("report:detail-update-destroy", kwargs={"pk": id}))
+
+        self.assertEqual(log.count(), 3)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "VIEW_REPORT")
+
+        # Profile Delete Log
+        self.client.delete(reverse("report:detail-update-destroy", kwargs={"pk": id}))
+
+        self.assertEqual(log.count(), 4)
+        self.assertEqual(log.filter(user_id=self.user).first().action, "DELETE_REPORT")
+
+        self.client.post(
+            reverse("report:list-create"),
+            data={
+                "title": "Test Report",
+                "description": "Test description",
+                "status": "IN_PROGRESS",
+                "type": "QUESTION",
+            },
+        )
+        id = Report.objects.filter(user_id=self.user).first().id
+
+        # 관리자 업데이트
+        super_user = User.objects.create_superuser(
+            email="admin_test@test.com",
+            nickname="admin_test",
+            password="test1234",
+        )
+        self.assertEqual(log.count(), 5)
+
+        token = RefreshToken.for_user(super_user)
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer " + str(token.access_token))
+        # PATCH 요청
+        response = self.client.patch(
+            reverse("report:admin-update", kwargs={"pk": id}),
+            data={"admin_comment": "test_log"},
+        )
+        self.assertEqual(log.count(), 6)
+        self.assertEqual(log.filter(user_id=super_user).first().action, "UPDATE_REPORT")
+        self.assertEqual(
+            log.filter(user_id=super_user).first().details["admin_comment"], "test_log"
+        )
+
+    def test_list_view_log(self):
+        url = reverse("log:list-create")
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.client.post(
+            reverse("report:list-create"),
+            data={
+                "title": "Test Report",
+                "description": "Test description",
+                "status": "IN_PROGRESS",
+                "type": "QUESTION",
+            },
+        )
+        id = ActivityLog.objects.filter(user_id=self.user).first().id
+
+        url = reverse("log:retrieve", kwargs={"pk": id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)

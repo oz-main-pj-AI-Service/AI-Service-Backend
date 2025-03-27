@@ -1,27 +1,25 @@
 from apps.log.models import ActivityLog
-from apps.log.serializers import ActivityLogCreateSerializer, ActivityLogSerializer
+from apps.log.serializers import ActivityLogSerializer
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
 from django.contrib.auth import get_user_model
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import filters, permissions, status
-from rest_framework.exceptions import NotAuthenticated, PermissionDenied
-from rest_framework.generics import ListCreateAPIView, RetrieveAPIView
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
+from rest_framework import filters
+from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 User = get_user_model()
 
 
 # 활동 로그 조회 및 생성 API
-class LogListCreateView(ListCreateAPIView):
+class LogListView(ListAPIView):
     queryset = ActivityLog.objects.all()
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["action", "ip_address", "user_agent"]
+    search_fields = ["action", "ip_address"]
     ordering_fields = ["created_at", "action"]
     permission_classes = [IsAuthenticatedJWTAuthentication]
+    serializer_class = ActivityLogSerializer
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증
@@ -45,24 +43,13 @@ class LogListCreateView(ListCreateAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    # 시리얼라이저 설정
-    def get_serializer_class(self):
-        if self.request.method == "POST":
-            return ActivityLogCreateSerializer
-        return ActivityLogSerializer
-
     def get_queryset(self):
 
         queryset = super().get_queryset()
 
-        # URL에서 log_id 확인
-        log_id = self.kwargs.get("log_id")
-        if log_id:
-            return queryset.filter(id=log_id)
-
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
         if not self.request.user.is_superuser:
-            queryset = queryset.filter(user_id=self.request.user.id)
+            queryset = queryset.filter(user_id=self.request.user)
 
         # 필터링 옵션
         action = self.request.query_params.get("action")
@@ -85,8 +72,6 @@ class LogRetrieveAPIView(RetrieveAPIView):
     queryset = ActivityLog.objects.all()
     serializer_class = ActivityLogSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
-    lookup_field = "id"
-    lookup_url_kwarg = "log_id"
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],  # 토큰 인증
@@ -114,7 +99,7 @@ class LogRetrieveAPIView(RetrieveAPIView):
 
         # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
         if not (self.request.user.is_staff or self.request.user.is_superuser):
-            queryset = queryset.filter(user_id=self.request.user.id)
+            queryset = queryset.filter(user_id=self.request.user)
 
         return queryset
 

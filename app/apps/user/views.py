@@ -29,6 +29,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from ..log.models import ActivityLog  # 추가
+from ..log.views import get_client_ip  # 추가
 from ..utils.authentication import IsAuthenticatedJWTAuthentication
 from ..utils.jwt_blacklist import add_to_blacklist, is_blacklisted
 from ..utils.jwt_cache import get_refresh_token, store_access_token, store_refresh_token
@@ -116,6 +118,7 @@ class UserRegisterView(APIView):
             409: openapi.Response(
                 description=(
                     "- `code`:`email_conflict`, 이미 사용중인 이메일\n"
+                    "- `code`:`social_user`, 이미 사용중인 이메일\n"
                     "- `code`:`phone_number_conflict`, 이미 사용중인 핸드폰 번호"
                 )
             ),
@@ -128,14 +131,14 @@ class UserRegisterView(APIView):
             user.save()
             id = str(user.id)
             if os.getenv("DOCKER_ENV", "false").lower() == "true":
-                domain = os.getenv("DOMAIN")
+                domain = "dev.hansang.ai.kr"
                 scheme = "https"
             else:
                 domain = "127.0.0.1:8000"
                 scheme = "http"
 
             token = jwt.encode({"user_id": id}, settings.SECRET_KEY, algorithm="HS256")
-            verify_url = f"{scheme}://{domain}/api/user/verify-email/?token={token}"
+            verify_url = f"{scheme}://{domain}/verify-email/?token={token}"
             send_mail(
                 "이메일 인증을 완료해 주세요",
                 f"다음 링크를 클릭, 이메일 인증을 완료해주세요: {verify_url}",
@@ -256,6 +259,13 @@ class UserLoginView(APIView):
         store_access_token(user.id, access_token, 3600)
         store_refresh_token(user.id, str(refresh), 86400)
 
+        # activity log 추가 = 로그인
+        ActivityLog.objects.create(
+            user_id=user,
+            action="LOGIN",
+            ip_address=get_client_ip(request),
+        )
+
         return Response(
             {
                 "access_token": access_token,
@@ -294,11 +304,17 @@ class UserLogoutView(APIView):
             expires_in = access_token.payload["exp"] - access_token.payload["iat"]
             add_to_blacklist(str(access_token), expires_in)
 
+        # activity log 추가 = 로그아웃
+        ActivityLog.objects.create(
+            user_id=request.user,
+            action="LOGOUT",
+            ip_address=get_client_ip(request),
+        )
+
         return Response({"message": "로그아웃 되었습니다."}, status=status.HTTP_200_OK)
 
 
 class UserProfileView(RetrieveUpdateDestroyAPIView):
-
     permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = UserProfileSerializer
 
@@ -339,7 +355,17 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
         },
     )
     def patch(self, request, *args, **kwargs):
-        return super().patch(request, *args, **kwargs)
+        response = super().patch(request, *args, **kwargs)
+
+        # activity log 추가 = 프로필 업데이트
+        ActivityLog.objects.create(
+            user_id=request.user,
+            action="UPDATE_PROFILE",
+            ip_address=get_client_ip(request),
+            details=response.data,  # 업데이트된 필드를 details에 저장
+        )
+
+        return response
 
     def get_object(self):
         # 현재 로그인 유저 반환
@@ -362,6 +388,14 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
     )
     def delete(self, request, *args, **kwargs):
         user = self.get_object()
+
+        # 계정 삭제 전 로깅
+        ActivityLog.objects.create(
+            user_id=request.user,
+            action="DELETE_PROFILE",  # 이 액션이 모델에 없다면 추가 필요
+            ip_address=get_client_ip(request),
+        )
+
         user.delete()
         return Response(
             {"message": "User account deactivated successfully"},
