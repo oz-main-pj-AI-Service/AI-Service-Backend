@@ -26,6 +26,8 @@ from apps.ai.utils import (
     stream_response,
     validate_ingredients,
 )
+from apps.log.models import ActivityLog
+from apps.log.views import get_client_ip
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
@@ -127,6 +129,12 @@ class RecipeRecommendationView(APIView):
                         object_id=ai_request.pk,
                         response_data=ai_response_data,
                         request_type="RECIPE",
+                    )
+
+                    ActivityLog.objects.create(
+                        user_id=request.user,
+                        action="RECIPE_REQUEST",
+                        ip_address=get_client_ip(request),
                     )
 
                     return Response(
@@ -236,6 +244,12 @@ class HealthBasedRecommendationView(APIView):
                         object_id=ai_request.pk,
                         response_data=ai_response_data,
                         request_type="HEALTH",
+                    )
+
+                    ActivityLog.objects.create(
+                        user_id=request.user,
+                        action="HEALTH_REQUEST",
+                        ip_address=get_client_ip(request),
                     )
 
                     return Response(
@@ -352,6 +366,12 @@ class FoodRecommendationView(APIView):
                         object_id=ai_request.pk,
                         response_data=ai_response_data,
                         request_type="FOOD",
+                    )
+
+                    ActivityLog.objects.create(
+                        user_id=request.user,
+                        action="FOOD_REQUEST",
+                        ip_address=get_client_ip(request),
                     )
 
                     return Response(

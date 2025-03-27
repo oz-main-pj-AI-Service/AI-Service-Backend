@@ -31,7 +31,7 @@ class HealthRequestSerializer(serializers.ModelSerializer):
 class FoodRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = FoodRequest
-        fields = ["cuisine_type", "food_base", "taste", "dietary_type"]
+        fields = ["cuisine_type", "food_base", "taste", "dietary_type", "last_meal"]
 
 
 # 각 API 응답을 위한 시리얼라이저
