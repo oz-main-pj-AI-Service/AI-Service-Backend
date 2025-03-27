@@ -118,6 +118,7 @@ class UserRegisterView(APIView):
             409: openapi.Response(
                 description=(
                     "- `code`:`email_conflict`, 이미 사용중인 이메일\n"
+                    "- `code`:`social_user`, 이미 사용중인 이메일\n"
                     "- `code`:`phone_number_conflict`, 이미 사용중인 핸드폰 번호"
                 )
             ),
