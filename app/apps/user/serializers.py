@@ -95,7 +95,12 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """이메일 중복 검사"""
-        if User.objects.filter(email=value).exists():
+        user = User.objects.filter(email=value).first()
+        if user:
+            if user.is_social:
+                raise ConflictException(
+                    detail="소셜 가입자 입니다 소셜로 로그인 하세요", code="social_user"
+                )
             raise ConflictException(
                 detail="이미 사용중인 이메일 입니다.", code="email_conflict"
             )
