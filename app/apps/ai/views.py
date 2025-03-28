@@ -26,13 +26,14 @@ from apps.ai.utils import (
     stream_response,
     validate_ingredients,
 )
+from apps.utils import pagination
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -384,8 +385,11 @@ class FoodRecommendationView(APIView):
             )
 
 
-class MenuRecommendListView(APIView):
+class MenuRecommendListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
+    serializer_class = MenuListChecksSerializer
+    pagination_class = pagination
+    queryset = FoodResult.objects.all()
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -403,26 +407,15 @@ class MenuRecommendListView(APIView):
             ),
         },
     )
-    def get(self, request):
+    def get_queryset(self):
         try:
-            # 페이지네이션
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("page_size", 10))
-
             # 관리자는 전체 조회 일반 사용자는 자신의 결과만
-            if request.user.is_superuser:
+            if self.request.user.is_superuser:
                 queryset = FoodResult.objects.all()
             else:
-                queryset = FoodResult.objects.filter(user=request.user).all()
-
-            # 페이지네이션 적용 수정필요
-            start_idx = (page - 1) * page_size
-            end_idx = start_idx + page_size
-            paginated_results = queryset[start_idx:end_idx]
-
-            serializer = MenuListChecksSerializer(paginated_results, many=True)
+                queryset = FoodResult.objects.filter(user=self.request.user).all()
             # 응답 데이터 - API 명세서에 맞게 결과 리스트만 반환
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return queryset
 
         # 에러코드 401 / 403 / 500
         except AuthenticationFailed as e:
