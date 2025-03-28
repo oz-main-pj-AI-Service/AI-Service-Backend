@@ -63,7 +63,8 @@ jobs:
           echo "DB_HOST=db" >> $GITHUB_ENV
           echo "DB_PORT=5432" >> $GITHUB_ENV
           echo "SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}" >> $GITHUB_ENV
-
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> $GITHUB_ENV
+          echo "DJANGO_ENV=${{ secrets.DJANGO_ENV }}" >> $GITHUB_ENV
       # Poetry를 설치합니다.
       - name: Install Poetry
         run: |
