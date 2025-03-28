@@ -26,11 +26,10 @@ from apps.ai.utils import (
     stream_response,
     validate_ingredients,
 )
-
-from apps.utils import pagination
 from apps.log.models import ActivityLog
 from apps.log.views import get_client_ip
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
+from apps.utils.pagination import Pagination
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
@@ -412,7 +411,7 @@ class FoodRecommendationView(APIView):
 class MenuRecommendListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = MenuListChecksSerializer
-    pagination_class = pagination
+    pagination_class = Pagination
     queryset = FoodResult.objects.all()
 
     @swagger_auto_schema(
