@@ -105,10 +105,13 @@ class RecipeRecommendationView(APIView):
                 prompt = stream_recipe_prompt(validated_data)
 
                 # 스트리밍 응답 반환
-                return StreamingHttpResponse(
+                response= StreamingHttpResponse(
                     stream_response(prompt, request, ai_request),
                     content_type="text/event-stream",
                 )
+                response["Cache-Control"] = "no-cache"
+                response["X-Accel-Buffering"] = "no"
+                return response
             else:
                 prompt = recipe_prompt(validated_data)
 
