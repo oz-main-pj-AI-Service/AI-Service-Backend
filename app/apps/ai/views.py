@@ -1,4 +1,5 @@
 import json
+import logging
 
 from apps.ai.models import (
     FoodRequest,
@@ -205,7 +206,8 @@ class HealthBasedRecommendationView(APIView):
 
             # 유효한 데이터 추출
             validated_data = serializer.validated_data
-            print(validated_data["goal"])
+            logger = logging.getLogger(__name__)
+            logger.info(f"goal: {validated_data.get('goal')}")
             ai_request = serializer.save(user=request.user)
 
             # 스트리밍 모드 확인
