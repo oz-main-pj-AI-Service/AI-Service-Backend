@@ -66,6 +66,9 @@ class RecipeRecommendationView(APIView):
                     "- `code`:`invalid_ingredients`, 유효하지 않은 식재료가 포함되어 있습니다."
                 )
             ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
+            ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
             ),
@@ -192,6 +195,9 @@ class HealthBasedRecommendationView(APIView):
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
             ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
+            ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
             ),
@@ -311,6 +317,9 @@ class FoodRecommendationView(APIView):
                     "잘못된 요청 코드 \n"
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
