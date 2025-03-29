@@ -222,7 +222,9 @@ class HealthBasedRecommendationView(APIView):
 
             if streaming_mode:
                 # 스트리밍용 프롬프트
-                prompt = stream_health_prompt(validated_data, allergies, disliked_foods, goal)
+                prompt = stream_health_prompt(
+                    validated_data, allergies, disliked_foods, goal
+                )
                 # 스트리밍 응답 반환
                 return StreamingHttpResponse(
                     stream_response(prompt, request, ai_request),
@@ -338,12 +340,16 @@ class FoodRecommendationView(APIView):
             taste = validated_data.get("taste", "")
             dietary_type = validated_data.get("dietary_type", "")
             last_meal = validated_data.get("last_meal", "")
-            goal=validated_data.get("goal", "")
+            goal = validated_data.get("goal", "")
 
             if streaming_mode:
                 # 스트리밍용 프롬프트
                 prompt = stream_food_prompt(
-                    cuisine_type, food_base, taste, dietary_type, last_meal,
+                    cuisine_type,
+                    food_base,
+                    taste,
+                    dietary_type,
+                    last_meal,
                 )
 
                 # 스트리밍 응답 반환

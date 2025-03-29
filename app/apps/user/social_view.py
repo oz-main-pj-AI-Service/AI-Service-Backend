@@ -18,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 User = get_user_model()
 
 
-def check_user_create_or_login(user, email, request):
+def check_user_create_or_login(user, email, phone_number, profile_image, request):
     if user and not user.is_social:  # 일반 로그인 계정이면
         return Response(
             {
@@ -45,12 +45,19 @@ def check_user_create_or_login(user, email, request):
                 "refresh_token": str(refresh),
                 "token_type": "Bearer",
                 "expires_in": 3600,
+                "is_new_user": False,
             },
             status=status.HTTP_200_OK,
         )
     else:
         # 새로운 사용자 생성
-        serializer = SocialUserCreateSerializer(data={"email": email})
+        serializer = SocialUserCreateSerializer(
+            data={
+                "email": email,
+                "phone_number": phone_number,
+                "profile_image": profile_image,
+            }
+        )
         if serializer.is_valid():
             user = serializer.save()
             user.is_active = True
@@ -65,6 +72,7 @@ def check_user_create_or_login(user, email, request):
                     "refresh_token": str(refresh),
                     "token_type": "Bearer",
                     "expires_in": 3600,
+                    "is_new_user": True,
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -130,10 +138,14 @@ class GoogleSocialLoginCallbackView(APIView):
         user_info = user_info_response.json()
 
         email = user_info.get("email")
+        phone_number = user_info.get("phone_number")
+        profile_image = user_info.get("profile_image")
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(user, email, request)
+        return check_user_create_or_login(
+            user, email, phone_number, profile_image, request
+        )
 
 
 # class NaverSocialLoginView(APIView):
@@ -188,7 +200,11 @@ class NaverSocialLoginCallbackView(APIView):
         user_info = user_info_response.json()
 
         email = user_info.get("response", {}).get("email")
+        phone_number = user_info.get("phone_number")
+        profile_image = user_info.get("profile_image")
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(user, email, request)
+        return check_user_create_or_login(
+            user, email, phone_number, profile_image, request
+        )

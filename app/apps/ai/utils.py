@@ -132,7 +132,6 @@ def stream_response(prompt, request, ai_request):
             json_part = clean_json_code_block(json_part)
 
             json_data = json.loads(json_part)
-            json_data["goal"] = getattr(ai_request, "goal", None)
             # JSON 데이터를 특별 태그와 함께 전송
             yield f"data: FINAL_JSON:{json.dumps(json_data)}\n\n"
 
