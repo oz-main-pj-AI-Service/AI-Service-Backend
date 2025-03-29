@@ -18,7 +18,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 User = get_user_model()
 
 
-def check_user_create_or_login(user, email, phone_number, profile_image, request):
+def check_user_create_or_login(user, email, request):
     if user and not user.is_social:  # 일반 로그인 계정이면
         return Response(
             {
@@ -51,13 +51,7 @@ def check_user_create_or_login(user, email, phone_number, profile_image, request
         )
     else:
         # 새로운 사용자 생성
-        serializer = SocialUserCreateSerializer(
-            data={
-                "email": email,
-                "phone_number": phone_number,
-                "profile_image": profile_image,
-            }
-        )
+        serializer = SocialUserCreateSerializer(data={"email": email})
         if serializer.is_valid():
             user = serializer.save()
             user.is_active = True
@@ -138,14 +132,10 @@ class GoogleSocialLoginCallbackView(APIView):
         user_info = user_info_response.json()
 
         email = user_info.get("email")
-        phone_number = user_info.get("phone_number")
-        profile_image = user_info.get("profile_image")
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(
-            user, email, phone_number, profile_image, request
-        )
+        return check_user_create_or_login(user, email, request)
 
 
 # class NaverSocialLoginView(APIView):
@@ -199,12 +189,9 @@ class NaverSocialLoginCallbackView(APIView):
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
 
-        email = user_info.get("response", {}).get("email")
-        phone_number = user_info.get("phone_number")
-        profile_image = user_info.get("profile_image")
+        response_data = user_info.get("response", {})
+        email = response_data.get("email")
 
         user = User.objects.filter(email=email).first()
 
-        return check_user_create_or_login(
-            user, email, phone_number, profile_image, request
-        )
+        return check_user_create_or_login(user, email, request)
