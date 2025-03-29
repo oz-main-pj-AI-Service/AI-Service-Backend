@@ -45,6 +45,7 @@ def check_user_create_or_login(user, email, request):
                 "refresh_token": str(refresh),
                 "token_type": "Bearer",
                 "expires_in": 3600,
+                "is_new_user": False,
             },
             status=status.HTTP_200_OK,
         )
@@ -65,6 +66,7 @@ def check_user_create_or_login(user, email, request):
                     "refresh_token": str(refresh),
                     "token_type": "Bearer",
                     "expires_in": 3600,
+                    "is_new_user": True,
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -187,7 +189,8 @@ class NaverSocialLoginCallbackView(APIView):
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
 
-        email = user_info.get("response", {}).get("email")
+        response_data = user_info.get("response", {})
+        email = response_data.get("email")
 
         user = User.objects.filter(email=email).first()
 
