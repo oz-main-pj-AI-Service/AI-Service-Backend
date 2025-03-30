@@ -35,6 +35,11 @@ from ..utils.authentication import IsAuthenticatedJWTAuthentication
 from ..utils.jwt_blacklist import add_to_blacklist, is_blacklisted
 from ..utils.jwt_cache import get_refresh_token, store_access_token, store_refresh_token
 from ..utils.pagination import Pagination
+from ..utils.redis_block import (
+    check_login_attempt_key,
+    get_login_attempt_key,
+    reset_login_attempt,
+)
 
 User = get_user_model()
 
@@ -226,13 +231,18 @@ class UserLoginView(APIView):
                 ),
             ),
             403: openapi.Response(
-                description="- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                description=(
+                    "- `code`:`not_verified`, 인증되지 않은 이메일\n"
+                    "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가"
+                )
             ),
         },
     )
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
+
+        check_login_attempt_key(email)
 
         user = authenticate(email=email, password=password)
         if not user:
@@ -265,6 +275,8 @@ class UserLoginView(APIView):
             action="LOGIN",
             ip_address=get_client_ip(request),
         )
+
+        reset_login_attempt(email)
 
         return Response(
             {
