@@ -22,6 +22,7 @@ from apps.ai.service import (
     stream_recipe_prompt,
 )
 from apps.ai.utils import (
+    GeminiClient,
     clean_json_code_block,
     model,
     stream_response,
@@ -123,7 +124,7 @@ class RecipeRecommendationView(APIView):
                 prompt = recipe_prompt(validated_data)
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_recipe_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
@@ -244,7 +245,7 @@ class HealthBasedRecommendationView(APIView):
                 prompt = health_prompt(validated_data, allergies, disliked_foods)
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_health_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
@@ -377,7 +378,7 @@ class FoodRecommendationView(APIView):
                 )
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_food_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
