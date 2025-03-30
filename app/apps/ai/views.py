@@ -31,6 +31,7 @@ from apps.log.models import ActivityLog
 from apps.log.views import get_client_ip
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
+from apps.utils.throttle import BurstRateThrottle, SustainedRateThrottle
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
@@ -49,6 +50,7 @@ class RecipeRecommendationView(APIView):
     메인 페이지: 보유 식재료 기반 요리 추천 AI 시스템
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -63,6 +65,9 @@ class RecipeRecommendationView(APIView):
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다.\n"
                     "- `code`:`invalid_ingredients`, 유효하지 않은 식재료가 포함되어 있습니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
@@ -175,6 +180,7 @@ class HealthBasedRecommendationView(APIView):
     AI 목표 기반 추천: 건강 목표에 따른 음식 추천
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -188,6 +194,9 @@ class HealthBasedRecommendationView(APIView):
                     "잘못된 요청 코드 \n"
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
@@ -294,6 +303,7 @@ class FoodRecommendationView(APIView):
     AI 기반 음식 추천: 사용자 선호도에 따른 음식 추천
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -307,6 +317,9 @@ class FoodRecommendationView(APIView):
                     "잘못된 요청 코드 \n"
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
