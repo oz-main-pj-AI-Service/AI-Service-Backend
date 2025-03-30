@@ -522,4 +522,12 @@ class AdminUserUpdateView(RetrieveUpdateDestroyAPIView):
         },
     )
     def patch(self, request, *args, **kwargs):
-        return super().patch(request, *args, **kwargs)
+        user = self.get_object()
+        prev_status = user.status
+
+        response =  super().patch(request, *args, **kwargs)
+
+        if prev_status == "DELETED" and response.data.get("status")== "ACTIVE":
+            User.restore_user(user.email)
+
+        return response
