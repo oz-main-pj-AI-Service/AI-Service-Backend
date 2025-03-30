@@ -133,7 +133,6 @@ class UserRegisterView(APIView):
         serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            user.save()
             id = str(user.id)
             if os.getenv("DOCKER_ENV", "false").lower() == "true":
                 domain = "dev.hansang.ai.kr"
@@ -467,9 +466,7 @@ class FindEmail(APIView):
         },
     )
     def post(self, request):
-        user = User.objects.filter(
-            phone_number=request.data.get("phone_number")
-        ).first()
+        user = User.objects.get(phone_number=request.data.get("phone_number"))
         if user:
             return Response(
                 {"message": f"your email is {user.email}"}, status=status.HTTP_200_OK

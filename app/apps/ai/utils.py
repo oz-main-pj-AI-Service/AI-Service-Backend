@@ -13,6 +13,20 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
 
+class GeminiClient:
+    @classmethod
+    def generate_content_recipe_prompt(cls, recipe: str):
+        return model.generate_content(recipe)
+
+    @classmethod
+    def generate_content_health_prompt(cls, health: str):
+        return model.generate_content(health)
+
+    @classmethod
+    def generate_content_food_prompt(cls, food: str):
+        return model.generate_content(food)
+
+
 # 식재료 유효성 검사 함수
 def validate_ingredients(ingredients):
     """
