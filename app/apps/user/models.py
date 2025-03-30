@@ -104,5 +104,3 @@ class User(AbstractBaseUser):
             user.deleted_at = None
             user.save()
         return user
-
-
