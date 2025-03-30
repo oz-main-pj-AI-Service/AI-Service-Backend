@@ -94,3 +94,13 @@ class User(AbstractBaseUser):
         self.status = "DELETED"
         self.deleted_at = timezone.now()
         self.save()
+
+    @classmethod
+    def restore_user(cls, email):
+        user = cls.objects.filter(email=email).first()
+        if user:
+            user.status = "ACTIVE"
+            user.is_active = True
+            user.deleted_at = None
+            user.save()
+        return user
