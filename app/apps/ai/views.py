@@ -42,6 +42,7 @@ from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, status
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -445,9 +446,9 @@ class MenuRecommendListView(generics.ListAPIView):
 
     # 필터 설정 추가 (django_filters.rest_framework 사용)
 
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = FoodResultFilter
-    search_fields = ["^email"]
+    search_fields = ["^user__email"]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
