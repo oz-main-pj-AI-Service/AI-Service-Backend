@@ -43,7 +43,5 @@ urlpatterns = [
     path("find-email/", FindEmail.as_view(), name="find-email"),
     # admin
     path("admin/", AdminUserListView.as_view(), name="admin-users-list"),
-    path(
-        "admin/<uuid:user_id>", AdminUserUpdateView.as_view(), name="admin-user-update"
-    ),
+    path("admin/<uuid:pk>", AdminUserUpdateView.as_view(), name="admin-user-update"),
 ]
