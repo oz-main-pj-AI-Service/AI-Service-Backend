@@ -221,7 +221,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "apps.utils.authentication.RedisJWTAuthentication",
     ),
-    "DEFAULT_THROTTLE_RATES": {"burst": "3/min", "sustained": "10/day"},
+    "DEFAULT_THROTTLE_RATES": {"burst": "10/min", "sustained": "1000/day"},
 }
 
 SIMPLE_JWT = {
