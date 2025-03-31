@@ -18,9 +18,6 @@ RUN poetry install --no-interaction --no-root && poetry show django
 # 프로젝트 파일 복사
 COPY . /Main-pj-AI-Service/
 
-# 정적 파일 수집
-RUN python manage.py collectstatic --noinput
-
 # 포트 노출
 EXPOSE 8000
 
