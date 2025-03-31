@@ -1,8 +1,4 @@
-ARG DJANGO_ENV
-
 FROM python:3.11
-
-ENV DJANGO_ENV=$DJANGO_ENV
 
 # 작업 디렉토리 설정
 WORKDIR /Main-pj-AI-Service/app
