@@ -44,6 +44,36 @@ from ..utils.redis_block import (
 User = get_user_model()
 
 
+class CheckEmailDuplicate(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "사용가능한 이메일 입니다",
+            409: openapi.Response(
+                description=(
+                    "잘못된 요청 시 응답\n"
+                    "- `code`:`exists_email`: 이미 존재하는 이메일입니다."
+                ),
+            ),
+        },
+    )
+    def get(self, request):
+        email = request.query_params.get("email")
+        if not email:
+            return Response(
+                {"code": "missing_email", "detail": "email 파라미터가 없습니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if User.objects.filter(email=email).exists():
+            return Response(
+                {"code": "exists_email", "detail": "이미 존재하는 이메일입니다."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(
+            {"message": "사용가능한 이메일 입니다"}, status=status.HTTP_200_OK
+        )
+
+
 class RefreshTokenView(APIView):
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -367,7 +397,6 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
     )
     def patch(self, request, *args, **kwargs):
         response = super().patch(request, *args, **kwargs)
-
         # activity log 추가 = 프로필 업데이트
         ActivityLog.objects.create(
             user_id=request.user,
