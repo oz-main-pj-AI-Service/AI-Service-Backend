@@ -33,7 +33,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            cd /home/ubuntu/ai-service-backend
+            cd /home/ubuntu/Main-pj-AI-Service
             git pull origin release   # 깃에서 최신 docker-compose.yml 등 가져오기
             docker pull hak2881/ai-service-backend:latest
             docker-compose down
