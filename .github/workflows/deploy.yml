@@ -25,6 +25,7 @@ jobs:
           context: .
           push: true
           tags: hak2881/ai-service-backend:latest
+          no-cache: true
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.7
