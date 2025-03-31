@@ -397,7 +397,6 @@ class UserProfileView(RetrieveUpdateDestroyAPIView):
     )
     def patch(self, request, *args, **kwargs):
         response = super().patch(request, *args, **kwargs)
-
         # activity log 추가 = 프로필 업데이트
         ActivityLog.objects.create(
             user_id=request.user,

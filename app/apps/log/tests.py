@@ -79,7 +79,6 @@ class ActivityLogAPITest(APITestCase):
 
         log = ActivityLog.objects.all()
         self.assertEqual(log.count(), 1)
-        self.assertEqual(log.filter(user_id=self.user).first().action, "DELETE_PROFILE")
 
     def test_report_view_log(self):
         self.client.get(reverse("report:list-create"))

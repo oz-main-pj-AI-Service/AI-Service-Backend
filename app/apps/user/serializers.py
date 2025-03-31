@@ -2,6 +2,7 @@ import redis
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 
@@ -140,20 +141,32 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("email", "nickname", "phone_number", "profile_image")
-        read_only_fields = ("email",)
+        fields = (
+            "email",
+            "nickname",
+            "phone_number",
+            "profile_image",
+            "status",
+            "is_social",
+        )
+        read_only_fields = ("email", "is_social")
 
-        def update(self, instance, validated_data):
-            """유저 프로필 업데이트 로직"""
-            instance.nickname = validated_data.get("nickname", instance.nickname)
-            instance.phone_number = validated_data.get(
-                "phone_number", instance.phone_number
-            )
-            instance.profile_image = validated_data.get(
-                "profile_image", instance.profile_image
-            )
+    def update(self, instance, validated_data):
+        """유저 프로필 업데이트 로직"""
+        instance.nickname = validated_data.get("nickname", instance.nickname)
+        instance.phone_number = validated_data.get(
+            "phone_number", instance.phone_number
+        )
+        instance.profile_image = validated_data.get(
+            "profile_image", instance.profile_image
+        )
+        instance.status = validated_data.get("status", instance.status)
+        if validated_data.get("status") == "DELETED":
+            instance.is_active = False
+            instance.deleted_at = timezone.now()
 
-            instance.save()
+        instance.save()
+        return instance
 
 
 class UserChangePasswordSerializer(serializers.ModelSerializer):
