@@ -119,7 +119,6 @@ Yields:
 
 
 def stream_response(prompt, request, ai_request):
-
     # 스트리밍 응답 시작
     yield "data: 응답 생성 중입니다...\n\n"
 

@@ -216,8 +216,6 @@ class HealthBasedRecommendationView(APIView):
 
             # 유효한 데이터 추출
             validated_data = serializer.validated_data
-            logger = logging.getLogger(__name__)
-            logger.info(f"goal: {validated_data.get('goal')}")
             ai_request = serializer.save(user=request.user)
 
             # 스트리밍 모드 확인
@@ -228,13 +226,10 @@ class HealthBasedRecommendationView(APIView):
             # 알레르기, 비선호 음식, 목표
             allergies = validated_data.get("allergies", [])
             disliked_foods = validated_data.get("disliked_foods", [])
-            goal = validated_data.get("goal", "")
 
             if streaming_mode:
                 # 스트리밍용 프롬프트
-                prompt = stream_health_prompt(
-                    validated_data, allergies, disliked_foods, goal
-                )
+                prompt = stream_health_prompt(validated_data, allergies, disliked_foods)
                 # 스트리밍 응답 반환
                 return StreamingHttpResponse(
                     stream_response(prompt, request, ai_request),
@@ -354,7 +349,6 @@ class FoodRecommendationView(APIView):
             taste = validated_data.get("taste", "")
             dietary_type = validated_data.get("dietary_type", "")
             last_meal = validated_data.get("last_meal", "")
-            goal = validated_data.get("goal", "")
 
             if streaming_mode:
                 # 스트리밍용 프롬프트
