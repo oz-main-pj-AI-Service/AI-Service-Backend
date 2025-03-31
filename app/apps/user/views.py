@@ -265,7 +265,7 @@ class UserLoginView(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
-        store_access_token(user.id, access_token, 300)
+        store_access_token(user.id, access_token, 15)
         store_refresh_token(user.id, str(refresh), 86400)
 
         # activity log 추가 = 로그인
@@ -282,7 +282,7 @@ class UserLoginView(APIView):
                 "access_token": access_token,
                 "refresh_token": str(refresh),
                 "token_type": "Bearer",
-                "expires_in": 3600,
+                "expires_in": 15,
             },
             status=status.HTTP_200_OK,
         )
