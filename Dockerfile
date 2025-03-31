@@ -1,3 +1,6 @@
+ARG DJANGO_ENV
+ENV DJANGO_ENV=$DJANGO_ENV
+
 FROM python:3.11
 
 # 작업 디렉토리 설정
