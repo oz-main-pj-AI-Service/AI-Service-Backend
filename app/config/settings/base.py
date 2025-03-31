@@ -226,7 +226,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),  # 액세스 토큰 유효 시간
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=3600),  # 액세스 토큰 유효 시간
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # 리프레시 토큰 유효 시간
     "ROTATE_REFRESH_TOKENS": True,  # 리프레시 토큰이 사용될 때마다 새로운 토큰 발급
     "BLACKLIST_AFTER_ROTATION": True,  # 이전 리프레시 토큰을 블랙리스트 처리
