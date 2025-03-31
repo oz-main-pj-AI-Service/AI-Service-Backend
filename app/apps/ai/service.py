@@ -72,6 +72,7 @@ def stream_recipe_prompt(validated_data):
                     "fat": 지방(g)
                 }}
             }}
+            JSON 형식으로 제공해 준다는 말 하지
             """
 
 
@@ -131,6 +132,7 @@ def stream_health_prompt(validated_data, allergies, disliked_foods):
                     ],
                     "recommendation_reason": "추천 이유 및 설명"
                 }}
+                JSON 형식으로 제공해 준다는 말 하지마
                 """
 
 
@@ -221,6 +223,7 @@ def stream_food_prompt(cuisine_type, food_base, taste, dietary_type, last_meal):
                     "recommendation_reason": "추천 이유"
                 }}
             }}
+            JSON 형식으로 제공해 준다는 말 하지
             """
 
 
