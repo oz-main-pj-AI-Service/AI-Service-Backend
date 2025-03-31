@@ -36,6 +36,8 @@ from apps.utils.throttle import BurstRateThrottle, SustainedRateThrottle
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
+from django_filters import CharFilter, filters
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import generics, status
@@ -426,11 +428,26 @@ class FoodRecommendationView(APIView):
             )
 
 
+# foodreuslt 필터 정의 - MenuRecommendListView안
+class FoodResultFilter(FilterSet):
+    request_type = CharFilter(field_name="request_type", lookup_expr="exact")
+
+    class Meta:
+        model = FoodResult
+        fields = ["request_type"]
+
+
 class MenuRecommendListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = MenuListChecksSerializer
     pagination_class = Pagination
     queryset = FoodResult.objects.all()
+
+    # 필터 설정 추가 (django_filters.rest_framework 사용)
+
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = FoodResultFilter
+    search_fields = ["^email"]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -456,6 +473,7 @@ class MenuRecommendListView(generics.ListAPIView):
             else:
                 queryset = FoodResult.objects.filter(user=self.request.user).all()
             # 응답 데이터 - API 명세서에 맞게 결과 리스트만 반환
+
             return queryset
 
         # 에러코드 401 / 403 / 500
