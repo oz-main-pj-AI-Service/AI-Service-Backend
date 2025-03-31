@@ -72,7 +72,6 @@ def stream_recipe_prompt(validated_data):
                     "fat": 지방(g)
                 }}
             }}
-            "JSON 형식으로만 반환해주세요 텍스트 포함하지 말아주세요. 마크다운 문법도 포함하지 말아주세요"
             """
 
 
@@ -132,7 +131,6 @@ def stream_health_prompt(validated_data, allergies, disliked_foods):
                     ],
                     "recommendation_reason": "추천 이유 및 설명"
                 }}
-                "JSON 형식으로만 반환해주세요 텍스트 포함하지 말아주세요. 마크다운 문법도 포함하지 말아주세요"
                 """
 
 
@@ -223,7 +221,6 @@ def stream_food_prompt(cuisine_type, food_base, taste, dietary_type, last_meal):
                     "recommendation_reason": "추천 이유"
                 }}
             }}
-            "JSON 형식으로만 반환해주세요 텍스트 포함하지 말아주세요. 마크다운 문법도 포함하지 말아주세요"
             """
 
 
