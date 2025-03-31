@@ -228,7 +228,6 @@ class HealthBasedRecommendationView(APIView):
             # 알레르기, 비선호 음식, 목표
             allergies = validated_data.get("allergies", [])
             disliked_foods = validated_data.get("disliked_foods", [])
-            goal = validated_data.get("goal", "")
 
             if streaming_mode:
                 # 스트리밍용 프롬프트
