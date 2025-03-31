@@ -478,6 +478,7 @@ class FindEmail(APIView):
 
 
 class AdminUserListView(ListAPIView):
+    queryset = User.objects.all()
     pagination_class = Pagination
     permission_classes = [IsAuthenticatedJWTAuthentication]
     serializer_class = UserListSerializer
