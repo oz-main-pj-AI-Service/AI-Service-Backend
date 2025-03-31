@@ -119,10 +119,6 @@ Yields:
 
 
 def stream_response(prompt, request, ai_request):
-    if not request.user or not request.user.is_authenticated:
-        yield f"data: JSON_ERROR: 인증된 사용자만 요청할 수 있습니다.\n\n"
-        yield "data: [DONE]\n\n"
-        return
     # 스트리밍 응답 시작
     yield "data: 응답 생성 중입니다...\n\n"
 
