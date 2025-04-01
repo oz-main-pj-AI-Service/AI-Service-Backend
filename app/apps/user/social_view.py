@@ -118,16 +118,9 @@ class GoogleSocialLoginCallbackView(APIView):
                 status=400,
             )
 
-        ip = get_client_ip(request)
-        # 로컬 IP 또는 프론트 개발 서버 포트 (Vue, Vite, React 등)
-        if ip.startswith("127.") or ip == "localhost" or ip == "::1":
-            redirect_uri = "http://localhost:5173/google/callback/"
-        else:
-            redirect_uri = "https://d2kcow20xqy4dv.cloudfront.net/google/callback/"
-
         client_id = settings.GOOGLE_CLIENT_ID
         client_secret = settings.GOOGLE_CLIENT_SECRET
-        redirect_uri = redirect_uri
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
 
         # 토큰 교환
         token_url = "https://oauth2.googleapis.com/token"
@@ -147,6 +140,7 @@ class GoogleSocialLoginCallbackView(APIView):
         headers = {"Authorization": f"Bearer {access_token}"}
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
+        print(user_info_response.json())
 
         email = user_info.get("email")
 
