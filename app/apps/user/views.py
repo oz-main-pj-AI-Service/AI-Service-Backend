@@ -263,6 +263,7 @@ class UserLoginView(APIView):
                 description=(
                     "- `code`:`not_verified`, 인증되지 않은 이메일\n"
                     "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가"
+                    "- `code`:`inactive_user`, 탈퇴한 계정이거나 비활성화된 유저입니다."
                 )
             ),
         },
@@ -281,6 +282,15 @@ class UserLoginView(APIView):
                     "code": "missmatch",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user or not user.is_active:
+            return Response(
+                {
+                    "error": "탈퇴한 계정이거나 비활성화된 유저입니다.",
+                    "code": "inactive_user",
+                },
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         if not user.email_verified:
