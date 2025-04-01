@@ -1,16 +1,20 @@
+import os
+
 import redis
 from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from dotenv import load_dotenv
 from rest_framework import serializers, status
 from rest_framework.exceptions import APIException
 
 # Create your views here.
 
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 User = get_user_model()
 redis_client = redis.StrictRedis(
-    host="localhost", port=6379, db=0, decode_responses=True
+    host=REDIS_HOST, port=6379, db=0, decode_responses=True
 )
 
 
