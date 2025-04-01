@@ -284,10 +284,10 @@ class UserLoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not user or not user.is_active:
+        if not user.is_active:
             return Response(
                 {
-                    "error": "탈퇴한 계정이거나 비활성화된 유저입니다.",
+                    "error": "탈퇴한 유저입니다.",
                     "code": "inactive_user",
                 },
                 status=status.HTTP_403_FORBIDDEN,
