@@ -140,7 +140,6 @@ class GoogleSocialLoginCallbackView(APIView):
         headers = {"Authorization": f"Bearer {access_token}"}
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
-        print(user_info_response.json())
 
         email = user_info.get("email")
 
