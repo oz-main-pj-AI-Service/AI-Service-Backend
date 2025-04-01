@@ -305,7 +305,10 @@ class UserLoginView(APIView):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
-
+        if user.is_superuser:
+            superuser = True
+        else:
+            superuser = False
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
@@ -326,6 +329,7 @@ class UserLoginView(APIView):
                 "refresh_token": str(refresh),
                 "token_type": "Bearer",
                 "expires_in": 3600,
+                "admin": superuser,
             },
             status=status.HTTP_200_OK,
         )
