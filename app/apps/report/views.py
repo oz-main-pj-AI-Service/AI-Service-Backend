@@ -8,6 +8,8 @@ from apps.report.serializers import (
 )
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
+from django_filters import CharFilter, FilterSet
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.exceptions import PermissionDenied
@@ -17,8 +19,6 @@ from rest_framework.generics import (
     UpdateAPIView,
 )
 from rest_framework.response import Response
-from django_filters import FilterSet, CharFilter
-from django_filters.rest_framework import DjangoFilterBackend
 
 # 필터셋 추가
 # class ReportFilter(FilterSet):
@@ -28,6 +28,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 #     class meta:
 #         model = Report
 #         fields = ["status", "type"]
+
 
 class ReportListCreateView(ListCreateAPIView):
     """리포트 목록 조회 및 생성 API"""
