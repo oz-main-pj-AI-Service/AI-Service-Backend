@@ -27,7 +27,17 @@ def check_user_create_or_login(user, email, request):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
     if user:
+        if not user.is_active:
+            return Response(
+                {
+                    "error": "탈퇴한 유저입니다.",
+                    "code": "inactive_user",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # 기존 사용자 로그인
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)

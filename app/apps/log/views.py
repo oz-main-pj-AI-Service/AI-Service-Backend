@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import filters
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 
 User = get_user_model()
@@ -94,14 +95,17 @@ class LogRetrieveAPIView(RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
+    def get_object(self):
+        obj = super().get_object()
 
-        # 관리자가 아닌 일반 사용자는 자신의 로그만 조회 가능
+        # 관리자 외엔 본인만 접근 가능
         if not (self.request.user.is_staff or self.request.user.is_superuser):
-            queryset = queryset.filter(user_id=self.request.user)
+            if obj.user_id != self.request.user:
+                raise PermissionDenied(
+                    detail="본인의 로그만 조회할 수 있습니다.", code="not_owner"
+                )
 
-        return queryset
+        return obj
 
 
 # 클라이언트 ip 주소 획득 함수
