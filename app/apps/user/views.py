@@ -554,7 +554,7 @@ class FindPasswordView(APIView):
         find_password = f"{scheme}://{domain}/sign-in/edit-pw/"
         send_mail(
             "본인인증 완료",
-            f"다음 링크를 클릭, 비밀번호를 변경해 주세요: {find_password}/?email={user.email}",
+            f"다음 링크를 클릭, 비밀번호를 변경해 주세요: {find_password}?email={user.email}",
             settings.EMAIL_HOST_USER,
             [user.email],
             fail_silently=False,
