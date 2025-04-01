@@ -274,8 +274,12 @@ class UserLoginView(APIView):
 
         check_login_attempt_key(email)
 
-        user = authenticate(email=email, password=password)
-        if not user:
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user = None
+
+        if not user or not user.check_password(password):
             return Response(
                 {
                     "error": "이메일 또는 비밀번호가 올바르지 않습니다.",
@@ -308,7 +312,6 @@ class UserLoginView(APIView):
         store_access_token(user.id, access_token, 3600)
         store_refresh_token(user.id, str(refresh), 86400)
 
-        # activity log 추가 = 로그인
         ActivityLog.objects.create(
             user_id=user,
             action="LOGIN",
