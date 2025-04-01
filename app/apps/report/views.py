@@ -17,7 +17,17 @@ from rest_framework.generics import (
     UpdateAPIView,
 )
 from rest_framework.response import Response
+from django_filters import FilterSet, CharFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
+# 필터셋 추가
+# class ReportFilter(FilterSet):
+#     status = CharFilter(field_name="status", lookup_expr="exact")
+#     type = CharFilter(field_name="type", lookup_expr="exact")
+#
+#     class meta:
+#         model = Report
+#         fields = ["status", "type"]
 
 class ReportListCreateView(ListCreateAPIView):
     """리포트 목록 조회 및 생성 API"""
@@ -26,6 +36,10 @@ class ReportListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
     pagination_class = Pagination
     serializer_class = ReportListCreateSerializer
+
+    # 필터 설정 추가
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_class = ReportFilter
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -63,7 +77,7 @@ class ReportListCreateView(ListCreateAPIView):
 
         report_type = self.request.query_params.get("type")
         if report_type:
-            queryset = queryset.filter(report_type=report_type)
+            queryset = queryset.filter(type=report_type)
 
         return queryset
 
