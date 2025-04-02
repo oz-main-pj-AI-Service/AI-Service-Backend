@@ -525,7 +525,10 @@ class FindEmail(APIView):
         user = User.objects.get(phone_number=request.data.get("phone_number"))
         if user:
             return Response(
-                {"message": f"your email is {user.email}"}, status=status.HTTP_200_OK
+                {
+                    "message": f"이메일 주소 : {user.email} \n 해당 이메일로 로그인 하세요."
+                },
+                status=status.HTTP_200_OK,
             )
         return Response(
             {"error": "존재 하지 않는 핸드폰 번호입니다.", "code": "DoesNotExist"},
