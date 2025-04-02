@@ -274,8 +274,9 @@ class UserLoginView(APIView):
         email = request.data.get("email")
         password = request.data.get("password")
 
-        check_login_attempt_key(email)
-
+        res = check_login_attempt_key(email)
+        if res:
+            return res
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
