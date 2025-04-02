@@ -18,8 +18,13 @@ def get_login_attempt_key(key):
 
 class TooManyLoginAttempts(APIException):
     status_code = status.HTTP_403_FORBIDDEN
-    default_detail = "로그인 시도 횟수를 초과했습니다. 5분후에 다시 시도하세요."
-    default_code = "Too_much_attempts"
+
+    def __init__(self, detail=None, code=None):
+        if detail is None:
+            detail = "로그인 시도 횟수를 초과했습니다. 5분후에 다시 시도하세요."
+        if code is None:
+            code = "Too_much_attempts"
+        self.detail = {"detail": detail, "code": code}
 
 
 def check_login_attempt_key(key, limit=5, block_time=300):
