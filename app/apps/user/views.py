@@ -527,7 +527,7 @@ class FindEmail(APIView):
         if user:
             return Response(
                 {
-                    "message": f"이메일 주소 : {user.email} \n 해당 이메일로 로그인 하세요."
+                    "message": f"이메일 주소 : {user.email} \n해당 이메일로 로그인 하세요."
                 },
                 status=status.HTTP_200_OK,
             )
