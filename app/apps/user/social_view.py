@@ -64,7 +64,6 @@ def check_user_create_or_login(user, email, request):
         serializer = SocialUserCreateSerializer(data={"email": email})
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active = True
             user.save()
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)

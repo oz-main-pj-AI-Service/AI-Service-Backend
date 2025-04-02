@@ -258,13 +258,14 @@ class UserLoginView(APIView):
                 description=(
                     "잘못된 요청 시 응답\n"
                     "- `code`:`missmatch` , 이메일 또는 비밀번호 불일치.\n"
+                    "- `code`:`is_social, 소셜로그인 사용자 입니다."
                 ),
             ),
             403: openapi.Response(
                 description=(
                     "- `code`:`not_verified`, 인증되지 않은 이메일\n"
-                    "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가"
-                    "- `code`:`inactive_user`, 탈퇴한 계정이거나 비활성화된 유저입니다."
+                    "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가\n"
+                    "- `code`:`inactive_user`, 탈퇴한 계정이거나 비활성화된 유저입니다.\n"
                 )
             ),
         },
@@ -296,6 +297,14 @@ class UserLoginView(APIView):
                     "code": "inactive_user",
                 },
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        if user.is_social:
+            return Response(
+                {
+                    "error": "소셜로그인 사용자 입니다. 소셜로 로그인하세요",
+                    "code": "is_social",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not user.email_verified:
@@ -530,7 +539,10 @@ class FindPasswordView(APIView):
         responses={
             200: "email:string",
             404: openapi.Response(
-                description="- `code`:`DoesNotExist`, 존재하지 않는 email"
+                description=(
+                    "- `code`:`DoesNotExist`, 존재하지 않는 email\n"
+                    "- `code`:`is_social`, 소셜로 로그인하세요."
+                )
             ),
         },
     )
@@ -544,6 +556,14 @@ class FindPasswordView(APIView):
                     "code": "DoesNotExist",
                 },
                 status=status.HTTP_404_NOT_FOUND,
+            )
+        if user.is_social:
+            return Response(
+                {
+                    "error": "소셜로그인 사용자입니다. 소셜로 로그인하세요",
+                    "code": "is_social",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
         if os.getenv("DOCKER_ENV", "false").lower() == "true":
             domain = settings.FRONTEND_DOMAIN
