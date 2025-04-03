@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   django:
-    build: .
     container_name: django
+    image: hak2881/ai-service-backend:latest
     ports:
       - "8000:8000"
     env_file:
@@ -14,7 +14,7 @@ services:
       redis:
         condition: service_healthy  # Redis가 실행될 때까지 대기
     volumes:
-      - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
+#      - .:/Main-pj-AI-Service  # 프로젝트 루트 전체를 마운트
       - static_volume:/Main-pj-AI-Service/app/static
     working_dir: /Main-pj-AI-Service/app  # 컨테이너 내부 작업 디렉토리를 /Main-pj-AI-Service/app 으로 설정
     command: >

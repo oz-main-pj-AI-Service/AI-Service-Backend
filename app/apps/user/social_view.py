@@ -27,7 +27,17 @@ def check_user_create_or_login(user, email, request):
             },
             status=status.HTTP_400_BAD_REQUEST,
         )
+
     if user:
+        if not user.is_active:
+            return Response(
+                {
+                    "error": "탈퇴한 유저입니다.",
+                    "code": "inactive_user",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         # 기존 사용자 로그인
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
@@ -45,6 +55,7 @@ def check_user_create_or_login(user, email, request):
                 "refresh_token": str(refresh),
                 "token_type": "Bearer",
                 "expires_in": 3600,
+                "is_new_user": False,
             },
             status=status.HTTP_200_OK,
         )
@@ -53,7 +64,6 @@ def check_user_create_or_login(user, email, request):
         serializer = SocialUserCreateSerializer(data={"email": email})
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active = True
             user.save()
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
@@ -65,6 +75,7 @@ def check_user_create_or_login(user, email, request):
                     "refresh_token": str(refresh),
                     "token_type": "Bearer",
                     "expires_in": 3600,
+                    "is_new_user": True,
                 },
                 status=status.HTTP_201_CREATED,
             )
@@ -128,6 +139,7 @@ class GoogleSocialLoginCallbackView(APIView):
         headers = {"Authorization": f"Bearer {access_token}"}
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
+        print(user_info_response.json())
 
         email = user_info.get("email")
 
@@ -187,7 +199,8 @@ class NaverSocialLoginCallbackView(APIView):
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
 
-        email = user_info.get("response", {}).get("email")
+        response_data = user_info.get("response", {})
+        email = response_data.get("email")
 
         user = User.objects.filter(email=email).first()
 

@@ -5,8 +5,11 @@ from apps.user.social_view import (
 from apps.user.views import (
     AdminUserListView,
     AdminUserUpdateView,
+    ChangePasswordNoLoginView,
     ChangePasswordView,
+    CheckEmailDuplicate,
     FindEmail,
+    FindPasswordView,
     RefreshTokenView,
     UserLoginView,
     UserLogoutView,
@@ -20,6 +23,7 @@ app_name = "user"
 
 urlpatterns = [
     path("register/", UserRegisterView.as_view(), name="register"),
+    path("check-email/", CheckEmailDuplicate.as_view(), name="check-email"),
     path("login/", UserLoginView.as_view(), name="login"),
     path("refresh-token/", RefreshTokenView.as_view(), name="refresh-token"),
     path("logout/", UserLogoutView.as_view(), name="logout"),
@@ -41,9 +45,9 @@ urlpatterns = [
     ),
     # 비밀번호 찾기
     path("find-email/", FindEmail.as_view(), name="find-email"),
+    path("find-password/", FindPasswordView.as_view(), name="find-password"),
+    path("change-pw/", ChangePasswordNoLoginView.as_view(), name="change-pw-not-login"),
     # admin
     path("admin/", AdminUserListView.as_view(), name="admin-users-list"),
-    path(
-        "admin/<uuid:user_id>", AdminUserUpdateView.as_view(), name="admin-user-update"
-    ),
+    path("admin/<uuid:pk>", AdminUserUpdateView.as_view(), name="admin-user-update"),
 ]

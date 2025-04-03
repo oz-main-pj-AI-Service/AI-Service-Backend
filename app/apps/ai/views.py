@@ -1,4 +1,5 @@
 import json
+import logging
 
 from apps.ai.models import (
     FoodRequest,
@@ -21,6 +22,7 @@ from apps.ai.service import (
     stream_recipe_prompt,
 )
 from apps.ai.utils import (
+    GeminiClient,
     clean_json_code_block,
     model,
     stream_response,
@@ -29,13 +31,18 @@ from apps.ai.utils import (
 from apps.log.models import ActivityLog
 from apps.log.views import get_client_ip
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
+from apps.utils.pagination import Pagination
+from apps.utils.throttle import BurstRateThrottle, SustainedRateThrottle
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.http import StreamingHttpResponse
+from django_filters import CharFilter, filters
+from django_filters.rest_framework import DjangoFilterBackend, FilterSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -47,6 +54,7 @@ class RecipeRecommendationView(APIView):
     메인 페이지: 보유 식재료 기반 요리 추천 AI 시스템
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -61,6 +69,9 @@ class RecipeRecommendationView(APIView):
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다.\n"
                     "- `code`:`invalid_ingredients`, 유효하지 않은 식재료가 포함되어 있습니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
@@ -105,15 +116,18 @@ class RecipeRecommendationView(APIView):
                 prompt = stream_recipe_prompt(validated_data)
 
                 # 스트리밍 응답 반환
-                return StreamingHttpResponse(
+                response = StreamingHttpResponse(
                     stream_response(prompt, request, ai_request),
                     content_type="text/event-stream",
                 )
+                response["Cache-Control"] = "no-cache"
+                response["X-Accel-Buffering"] = "no"
+                return response
             else:
                 prompt = recipe_prompt(validated_data)
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_recipe_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
@@ -170,6 +184,7 @@ class HealthBasedRecommendationView(APIView):
     AI 목표 기반 추천: 건강 목표에 따른 음식 추천
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -183,6 +198,9 @@ class HealthBasedRecommendationView(APIView):
                     "잘못된 요청 코드 \n"
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
@@ -201,7 +219,6 @@ class HealthBasedRecommendationView(APIView):
 
             # 유효한 데이터 추출
             validated_data = serializer.validated_data
-
             ai_request = serializer.save(user=request.user)
 
             # 스트리밍 모드 확인
@@ -209,7 +226,7 @@ class HealthBasedRecommendationView(APIView):
                 request.query_params.get("streaming", "false").lower() == "true"
             )
 
-            # 알레르기 및 비선호 음식 정보
+            # 알레르기, 비선호 음식, 목표
             allergies = validated_data.get("allergies", [])
             disliked_foods = validated_data.get("disliked_foods", [])
 
@@ -226,7 +243,7 @@ class HealthBasedRecommendationView(APIView):
                 prompt = health_prompt(validated_data, allergies, disliked_foods)
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_health_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
@@ -285,6 +302,7 @@ class FoodRecommendationView(APIView):
     AI 기반 음식 추천: 사용자 선호도에 따른 음식 추천
     """
 
+    throttle_classes = [SustainedRateThrottle, BurstRateThrottle]
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
     @swagger_auto_schema(
@@ -298,6 +316,9 @@ class FoodRecommendationView(APIView):
                     "잘못된 요청 코드 \n"
                     "- `code`:`invalid_data`, 유효하지 않은 데이터입니다."
                 )
+            ),
+            429: openapi.Response(
+                description="- `code`:429, `error`: Too Many Requests.\n"
             ),
             500: openapi.Response(
                 description="- `code`:`internal_error`, 서버 내부 오류가 발생했습니다.\n"
@@ -335,7 +356,11 @@ class FoodRecommendationView(APIView):
             if streaming_mode:
                 # 스트리밍용 프롬프트
                 prompt = stream_food_prompt(
-                    cuisine_type, food_base, taste, dietary_type, last_meal
+                    cuisine_type,
+                    food_base,
+                    taste,
+                    dietary_type,
+                    last_meal,
                 )
 
                 # 스트리밍 응답 반환
@@ -350,7 +375,7 @@ class FoodRecommendationView(APIView):
                 )
 
                 # Gemini API 호출
-                response = model.generate_content(prompt)
+                response = GeminiClient.generate_content_food_prompt(prompt)
 
                 try:
                     # JSON 파싱 시도
@@ -404,8 +429,26 @@ class FoodRecommendationView(APIView):
             )
 
 
-class MenuRecommendListView(APIView):
+# foodreuslt 필터 정의 - MenuRecommendListView안
+class FoodResultFilter(FilterSet):
+    request_type = CharFilter(field_name="request_type", lookup_expr="exact")
+
+    class Meta:
+        model = FoodResult
+        fields = ["request_type"]
+
+
+class MenuRecommendListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
+    serializer_class = MenuListChecksSerializer
+    pagination_class = Pagination
+    queryset = FoodResult.objects.all()
+
+    # 필터 설정 추가 (django_filters.rest_framework 사용)
+
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_class = FoodResultFilter
+    search_fields = ["^user__email"]
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -423,26 +466,16 @@ class MenuRecommendListView(APIView):
             ),
         },
     )
-    def get(self, request):
+    def get_queryset(self):
         try:
-            # 페이지네이션
-            page = int(request.query_params.get("page", 1))
-            page_size = int(request.query_params.get("page_size", 10))
-
             # 관리자는 전체 조회 일반 사용자는 자신의 결과만
-            if request.user.is_superuser:
+            if self.request.user.is_superuser:
                 queryset = FoodResult.objects.all()
             else:
-                queryset = FoodResult.objects.filter(user=request.user).all()
-
-            # 페이지네이션 적용 수정필요
-            start_idx = (page - 1) * page_size
-            end_idx = start_idx + page_size
-            paginated_results = queryset[start_idx:end_idx]
-
-            serializer = MenuListChecksSerializer(paginated_results, many=True)
+                queryset = FoodResult.objects.filter(user=self.request.user).all()
             # 응답 데이터 - API 명세서에 맞게 결과 리스트만 반환
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            return queryset
 
         # 에러코드 401 / 403 / 500
         except AuthenticationFailed as e:

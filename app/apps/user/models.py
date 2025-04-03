@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.db import models
@@ -89,8 +90,12 @@ class User(AbstractBaseUser):
     # def is_superuser(self):
     #     return self.is_superuser
 
-    def delete(self):
-        self.is_active = False
-        self.status = "DELETED"
-        self.deleted_at = timezone.now()
-        self.save()
+    @classmethod
+    def restore_user(cls, email):
+        user = cls.objects.filter(email=email).first()
+        if user:
+            user.status = "ACTIVE"
+            user.is_active = True
+            user.deleted_at = None
+            user.save()
+        return user

@@ -8,8 +8,11 @@ from apps.report.serializers import (
 )
 from apps.utils.authentication import IsAuthenticatedJWTAuthentication
 from apps.utils.pagination import Pagination
+from django_filters import CharFilter, FilterSet
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import (
     ListCreateAPIView,
@@ -17,6 +20,15 @@ from rest_framework.generics import (
     UpdateAPIView,
 )
 from rest_framework.response import Response
+
+# 필터셋 추가
+# class ReportFilter(FilterSet):
+#     status = CharFilter(field_name="status", lookup_expr="exact")
+#     type = CharFilter(field_name="type", lookup_expr="exact")
+#
+#     class meta:
+#         model = Report
+#         fields = ["status", "type"]
 
 
 class ReportListCreateView(ListCreateAPIView):
@@ -26,6 +38,10 @@ class ReportListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticatedJWTAuthentication]
     pagination_class = Pagination
     serializer_class = ReportListCreateSerializer
+
+    # 필터 설정 추가
+    # filter_backends = [DjangoFilterBackend]
+    # filterset_class = ReportFilter
 
     @swagger_auto_schema(
         security=[{"Bearer": []}],
@@ -63,7 +79,7 @@ class ReportListCreateView(ListCreateAPIView):
 
         report_type = self.request.query_params.get("type")
         if report_type:
-            queryset = queryset.filter(report_type=report_type)
+            queryset = queryset.filter(type=report_type)
 
         return queryset
 
@@ -212,37 +228,44 @@ class AdminReportUpdateView(UpdateAPIView):
     serializer_class = AdminReportUpdateSerializer
     permission_classes = [IsAuthenticatedJWTAuthentication]
 
-    def perform_update(self, serializer):
-        if not self.request.user.is_superuser:
-            raise PermissionDenied(detail="관리자가 아닙니다.", code="not_Admin")
-        serializer.save(admin_id=self.request.user)
-        ActivityLog.objects.create(
-            user_id=self.request.user,
-            action="UPDATE_REPORT",
-            ip_address=get_client_ip(self.request),
-            details={
-                "admin_comment": self.request.data.get("admin_comment"),
-                "admin_id": str(self.request.user.id),
-            },
-        )
-
     @swagger_auto_schema(
         security=[{"Bearer": []}],
         request_body=AdminReportUpdateSerializer,
         responses={
             200: "msg:업데이트 성공.",
             400: openapi.Response(
-                description=(
-                    "잘못된 요청 코드 \n" "- `code`:`not_found`, 리포트를 찾지 못함."
-                )
+                description="- `code`:`not_found`, 리포트를 찾지 못함."
             ),
             401: openapi.Response(
-                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다\n"
+                description="- `code`:`unauthorized`, 인증되지 않은 사용자입니다"
             ),
             403: openapi.Response(
-                description=("- `code`:`not_Admin`, 관리자가 아닙니다.\n")
+                description="- `code`:`not_Admin`, 관리자가 아닙니다."
             ),
         },
     )
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        if not request.user.is_superuser:
+            return Response(
+                {"detail": "관리자가 아닙니다.", "code": "not_Admin"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save(admin_id=request.user)
+
+        ActivityLog.objects.create(
+            user_id=request.user,
+            action="UPDATE_REPORT",
+            ip_address=get_client_ip(request),
+            details={
+                "admin_comment": request.data.get("admin_comment"),
+                "admin_id": str(request.user.id),
+            },
+        )
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_extensions",
     "corsheaders",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -221,10 +222,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "apps.utils.authentication.RedisJWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_RATES": {"burst": "10/min", "sustained": "1000/day"},
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # 액세스 토큰 유효 시간
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=3600),  # 액세스 토큰 유효 시간
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),  # 리프레시 토큰 유효 시간
     "ROTATE_REFRESH_TOKENS": True,  # 리프레시 토큰이 사용될 때마다 새로운 토큰 발급
     "BLACKLIST_AFTER_ROTATION": True,  # 이전 리프레시 토큰을 블랙리스트 처리
@@ -247,6 +249,7 @@ GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
+FRONTEND_DOMAIN = os.getenv("FRONTEND_DOMAIN")
 
 swagger_settings = {
     "SECURITY_DEFINITIONS": {
