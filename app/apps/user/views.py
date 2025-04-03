@@ -19,6 +19,7 @@ from django.core.mail import send_mail
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import status
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.generics import (
     ListAPIView,
     RetrieveUpdateDestroyAPIView,
@@ -165,7 +166,7 @@ class UserRegisterView(APIView):
             user = serializer.save()
             id = str(user.id)
             if os.getenv("DOCKER_ENV", "false").lower() == "true":
-                domain = "dev.hansang.ai.kr"
+                domain = settings.FRONTEND_DOMAIN
                 scheme = "https"
             else:
                 domain = "127.0.0.1:8000"
@@ -257,13 +258,14 @@ class UserLoginView(APIView):
                 description=(
                     "잘못된 요청 시 응답\n"
                     "- `code`:`missmatch` , 이메일 또는 비밀번호 불일치.\n"
+                    "- `code`:`is_social, 소셜로그인 사용자 입니다."
                 ),
             ),
             403: openapi.Response(
                 description=(
                     "- `code`:`not_verified`, 인증되지 않은 이메일\n"
-                    "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가"
-                    "- `code`:`inactive_user`, 탈퇴한 계정이거나 비활성화된 유저입니다."
+                    "- `code`:`Too_much_attempts`, 로그인 시도횟수 5회 초과 실패 5분 간 불가\n"
+                    "- `code`:`inactive_user`, 탈퇴한 계정이거나 비활성화된 유저입니다.\n"
                 )
             ),
         },
@@ -272,8 +274,9 @@ class UserLoginView(APIView):
         email = request.data.get("email")
         password = request.data.get("password")
 
-        check_login_attempt_key(email)
-
+        res = check_login_attempt_key(email)
+        if res:
+            return res
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -295,6 +298,14 @@ class UserLoginView(APIView):
                     "code": "inactive_user",
                 },
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        if user.is_social:
+            return Response(
+                {
+                    "error": "소셜로그인 사용자 입니다. 소셜로 로그인하세요",
+                    "code": "is_social",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not user.email_verified:
@@ -515,12 +526,101 @@ class FindEmail(APIView):
         user = User.objects.get(phone_number=request.data.get("phone_number"))
         if user:
             return Response(
-                {"message": f"your email is {user.email}"}, status=status.HTTP_200_OK
+                {
+                    "message": f"이메일 주소 : {user.email} \n해당 이메일로 로그인 하세요."
+                },
+                status=status.HTTP_200_OK,
             )
         return Response(
             {"error": "존재 하지 않는 핸드폰 번호입니다.", "code": "DoesNotExist"},
             status=status.HTTP_404_NOT_FOUND,
         )
+
+
+class FindPasswordView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "email:string",
+            404: openapi.Response(
+                description=(
+                    "- `code`:`DoesNotExist`, 존재하지 않는 email\n"
+                    "- `code`:`is_social`, 소셜로 로그인하세요."
+                )
+            ),
+        },
+    )
+    def post(self, request):
+        try:
+            user = User.objects.get(email=request.data.get("email"))
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "detail": "일치하는 이메일이 없습니다. 회원가입 하세요.",
+                    "code": "DoesNotExist",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if user.is_social:
+            return Response(
+                {
+                    "error": "소셜로그인 사용자입니다. 소셜로 로그인하세요",
+                    "code": "is_social",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if os.getenv("DOCKER_ENV", "false").lower() == "true":
+            domain = settings.FRONTEND_DOMAIN
+            scheme = "https"
+        else:
+            domain = "127.0.0.1:8000"
+            scheme = "http"
+        find_password = f"{scheme}://{domain}/sign-in/edit-pw/"
+        send_mail(
+            "본인인증 완료",
+            f"다음 링크를 클릭, 비밀번호를 변경해 주세요: {find_password}?email={user.email}",
+            settings.EMAIL_HOST_USER,
+            [user.email],
+            fail_silently=False,
+        )
+        return Response(
+            {"detail": "본인 이메일로 접속해 비밀번호를 변경하세요"},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ChangePasswordNoLoginView(APIView):
+    @swagger_auto_schema(
+        security=[{"Bearer": []}],
+        responses={
+            200: "email:string",
+            400: openapi.Response(description=("code : missing_field\n")),
+            404: openapi.Response(
+                description="- `code`:`DoesNotExist`, 존재하지 않는 email"
+            ),
+        },
+    )
+    def post(self, request):
+        password1 = request.data.get("password1")
+        password2 = request.data.get("password2")
+        email = request.data.get("email")
+        # 필수값 누락 체크
+        if not email or not password1 or not password2:
+            raise ValidationError(
+                {"code": "missing_field", "detail": "필수 입력값이 누락되었습니다."}
+            )
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise NotFound(
+                {
+                    "code": "user_not_found",
+                    "detail": "해당 이메일의 유저가 존재하지 않습니다.",
+                }
+            )
+        user.set_password(password1)
+        user.save()
+        return Response({"msg": "비밀번호 변경 완료"}, status=status.HTTP_200_OK)
 
 
 class AdminUserListView(ListAPIView):

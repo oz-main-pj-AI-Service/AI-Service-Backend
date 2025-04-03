@@ -64,7 +64,6 @@ def check_user_create_or_login(user, email, request):
         serializer = SocialUserCreateSerializer(data={"email": email})
         if serializer.is_valid():
             user = serializer.save()
-            user.is_active = True
             user.save()
             refresh = RefreshToken.for_user(user)
             access_token = str(refresh.access_token)
@@ -140,6 +139,7 @@ class GoogleSocialLoginCallbackView(APIView):
         headers = {"Authorization": f"Bearer {access_token}"}
         user_info_response = requests.get(user_info_url, headers=headers)
         user_info = user_info_response.json()
+        print(user_info_response.json())
 
         email = user_info.get("email")
 
